@@ -328,8 +328,6 @@ return [
         'Magento_WishlistAnalytics' => 1,
         'Magento_WishlistGraphQl' => 1,
         'Bold_OrderComment' => 1,
-        'Customweb_Base' => 1,
-        'Customweb_TwintCw' => 1,
         'Flugsau_Shop' => 1,
         'Lillik_PriceDecimal' => 1,
         'Magefan_AdminUserGuide' => 1,
@@ -1590,27 +1588,6 @@ Disallow: /*SID=',
                     'group' => 'paypal',
                     'display_ec' => '0',
                     'verify_peer' => '1',
-                ],
-                'twintcw_twint' => [
-                    'active' => '0',
-                    'model' => 'Customweb\\TwintCw\\Model\\Payment\\Method\\Twint',
-                    'payment_action' => 'initialize',
-                    'group' => 'twintcw',
-                    'title' => 'Twint',
-                    'description' => 'Pay with Twint',
-                    'show_image' => '1',
-                    'show_payment_id' => '1',
-                    'base_currency' => '0',
-                    'allowspecific' => '1',
-                    'settlement' => 'deferred',
-                    'invoice_email' => '1',
-                    'capturing' => 'deferred',
-                    'authorizationMethod' => 'PaymentPage',
-                    'currency' => 'CHF',
-                    'specificcountry' => 'CH',
-                    'min_order_total' => null,
-                    'max_order_total' => null,
-                    'sort_order' => '1',
                 ],
                 'klarna_kp' => [
                     'model' => 'Klarna\\Kp\\Model\\Payment\\Kp',
@@ -2884,19 +2861,6 @@ SRtzyD0ASJBvg9aGk3lNt0qsWbgd//s8ZTNjorXTd9Y8dGOhvImobXU4qlXKdQVl
                 ],
                 'wishlist_link' => [
                     'use_qty' => '0',
-                ],
-            ],
-            'twintcw' => [
-                'information' => [
-                    'version' => '4.0.105',
-                ],
-                'shop' => [
-                    'alias_management' => '0',
-                    'await_notification' => '1',
-                    'external_checkout_account_creation' => 'force_selection',
-                ],
-                'logging' => [
-                    'level' => 'error',
                 ],
             ],
             'connector_api_credentials' => [
@@ -4818,9 +4782,6 @@ UID Nr: CHE-116.135.646',
                     ],
                     'banktransfer' => [
                         'title' => 'Vorauskasse',
-                    ],
-                    'twintcw_twint' => [
-                        'description' => 'Mit Twint bezahlen',
                     ],
                     'checkmo' => [
                         'title' => 'Rechnung',
