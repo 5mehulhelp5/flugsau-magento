@@ -4464,6 +4464,15 @@
             'reference' => '4426cdf87d10ad9a45e21da1468665a97d01ef79',
             'dev_requirement' => false,
         ),
+        'magento/zendframework1' => array(
+            'pretty_version' => '1.15.1',
+            'version' => '1.15.1.0',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../magento/zendframework1',
+            'aliases' => array(),
+            'reference' => '2381396d2a9a528be2f367b5ce2dddf650eac1d0',
+            'dev_requirement' => false,
+        ),
         'mageplaza/magento-2-german-language-pack' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
@@ -4919,8 +4928,8 @@
         'psr/log-implementation' => array(
             'dev_requirement' => false,
             'provided' => array(
-                0 => '1.0|2.0|3.0',
-                1 => '1.0.0 || 2.0.0 || 3.0.0',
+                0 => '1.0.0 || 2.0.0 || 3.0.0',
+                1 => '1.0|2.0|3.0',
             ),
         ),
         'psy/psysh' => array(

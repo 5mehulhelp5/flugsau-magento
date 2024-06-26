@@ -13,6 +13,7 @@ return array(
     'Zend_Exception' => array($vendorDir . '/magento/zend-exception/library'),
     'Zend_Db' => array($vendorDir . '/magento/zend-db/library'),
     'Zend_Cache' => array($vendorDir . '/magento/zend-cache/library'),
+    'Zend_' => array($vendorDir . '/magento/zendframework1/library'),
     'PHPMD\\' => array($vendorDir . '/phpmd/phpmd/src/main/php'),
     'OAuth\\Unit' => array($vendorDir . '/lusitanian/oauth/tests'),
     'OAuth' => array($vendorDir . '/lusitanian/oauth/src'),
