@@ -46,6 +46,7 @@ use function substr;
  *    useTldCheck?: bool,
  *    ipValidator?: null|ValidatorInterface,
  * }
+ * @final
  */
 class Hostname extends AbstractValidator
 {
@@ -182,7 +183,6 @@ class Hostname extends AbstractValidator
         'author',
         'auto',
         'autos',
-        'avianca',
         'aw',
         'aws',
         'ax',
@@ -607,7 +607,6 @@ class Hostname extends AbstractValidator
         'gs',
         'gt',
         'gu',
-        'guardian',
         'gucci',
         'guge',
         'guide',
@@ -901,7 +900,6 @@ class Hostname extends AbstractValidator
         'nab',
         'nagoya',
         'name',
-        'natura',
         'navy',
         'nba',
         'nc',

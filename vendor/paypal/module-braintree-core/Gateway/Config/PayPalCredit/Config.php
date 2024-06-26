@@ -1,4 +1,8 @@
 <?php
+/**
+ * Copyright © Magento, Inc. All rights reserved.
+ * See COPYING.txt for license details.
+ */
 declare(strict_types=1);
 
 namespace PayPal\Braintree\Gateway\Config\PayPalCredit;
@@ -6,32 +10,31 @@ namespace PayPal\Braintree\Gateway\Config\PayPalCredit;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Payment\Gateway\ConfigInterface;
 use Magento\Store\Model\ScopeInterface;
-use \Magento\Paypal\Model\Config as PPConfig;
 
 class Config implements ConfigInterface
 {
-    const KEY_ACTIVE = 'active';
-    const KEY_UK_ACTIVATION_CODE = 'uk_activation_code';
-    const KEY_UK_MERCHANT_NAME = 'uk_merchant_name';
-    const KEY_CLIENT_ID = 'client_id';
-    const KEY_SECRET = 'secret';
-    const KEY_SANDBOX = 'sandbox';
-    const DEFAULT_PATH_PATTERN = 'payment/%s/%s';
+    public const KEY_ACTIVE = 'active';
+    public const KEY_UK_ACTIVATION_CODE = 'uk_activation_code';
+    public const KEY_UK_MERCHANT_NAME = 'uk_merchant_name';
+    public const KEY_CLIENT_ID = 'client_id';
+    public const KEY_SECRET = 'secret';
+    public const KEY_SANDBOX = 'sandbox';
+    public const DEFAULT_PATH_PATTERN = 'payment/%s/%s';
 
     /**
      * @var ScopeConfigInterface
      */
-    private $scopeConfig;
+    private ScopeConfigInterface $scopeConfig;
 
     /**
      * @var string|null
      */
-    private $methodCode;
+    private ?string $methodCode;
 
     /**
      * @var string|null
      */
-    private $pathPattern;
+    private ?string $pathPattern;
 
     /**
      * @param ScopeConfigInterface $scopeConfig
@@ -40,8 +43,8 @@ class Config implements ConfigInterface
      */
     public function __construct(
         ScopeConfigInterface $scopeConfig,
-        $methodCode = null,
-        $pathPattern = self::DEFAULT_PATH_PATTERN
+        string $methodCode = null,
+        string $pathPattern = self::DEFAULT_PATH_PATTERN
     ) {
         $this->scopeConfig = $scopeConfig;
         $this->methodCode = $methodCode;
@@ -54,7 +57,7 @@ class Config implements ConfigInterface
      * @param string $methodCode
      * @return void
      */
-    public function setMethodCode($methodCode)
+    public function setMethodCode($methodCode): void
     {
         $this->methodCode = $methodCode;
     }
@@ -65,7 +68,7 @@ class Config implements ConfigInterface
      * @param string $pathPattern
      * @return void
      */
-    public function setPathPattern($pathPattern)
+    public function setPathPattern($pathPattern): void
     {
         $this->pathPattern = $pathPattern;
     }
@@ -78,7 +81,7 @@ class Config implements ConfigInterface
      *
      * @return mixed
      */
-    public function getValue($field, $storeId = null)
+    public function getValue($field, $storeId = null): mixed
     {
         if (null === $this->methodCode || null === $this->pathPattern) {
             return null;
@@ -92,10 +95,12 @@ class Config implements ConfigInterface
     }
 
     /**
-     * @param $field
+     * Get configuration field value
+     *
+     * @param string $field
      * @return mixed
      */
-    public function getConfigValue($field)
+    public function getConfigValue(string $field): mixed
     {
         return $this->scopeConfig->getValue(
             $field,
@@ -127,7 +132,11 @@ class Config implements ConfigInterface
 
         // Validate configuration if UK
         if ($this->isUk()) {
-            $merchantId = substr($this->getConfigValue('payment/braintree/merchant_id'), -4);
+            if ($this->isSandbox()) {
+                $merchantId = substr($this->getConfigValue('payment/braintree/sandbox_merchant_id'), -4);
+            } else {
+                $merchantId = substr($this->getConfigValue('payment/braintree/merchant_id'), -4);
+            }
             return $merchantId === $this->getActivationCode() && $this->getMerchantName();
         }
 
@@ -149,7 +158,7 @@ class Config implements ConfigInterface
      *
      * @return string|null
      */
-    public function getMerchantName()
+    public function getMerchantName(): ?string
     {
         return $this->getValue(self::KEY_UK_MERCHANT_NAME);
     }
@@ -159,7 +168,7 @@ class Config implements ConfigInterface
      *
      * @return string|null
      */
-    public function getActivationCode()
+    public function getActivationCode(): ?string
     {
         return $this->getValue(self::KEY_UK_ACTIVATION_CODE);
     }
@@ -171,7 +180,7 @@ class Config implements ConfigInterface
      */
     public function isSandbox(): bool
     {
-        return 'sandbox' === $this->getConfigValue('payment/braintree/environment');
+        return self::KEY_SANDBOX === $this->getConfigValue('payment/braintree/environment');
     }
 
     /**
@@ -179,22 +188,24 @@ class Config implements ConfigInterface
      *
      * @return string|null
      */
-    public function getClientId()
+    public function getClientId(): ?string
     {
         return $this->getValue(self::KEY_CLIENT_ID);
     }
 
     /**
      * Secret Key
+     *
      * @return string|null
      */
-    public function getSecret()
+    public function getSecret(): ?string
     {
         return $this->getValue(self::KEY_SECRET);
     }
 
     /**
      * Merchant Country set to GB/UK
+     *
      * @return bool
      */
     public function isUk(): bool
@@ -204,6 +215,7 @@ class Config implements ConfigInterface
 
     /**
      * Merchant Country set to US
+     *
      * @return bool
      */
     public function isUS(): bool
@@ -216,7 +228,7 @@ class Config implements ConfigInterface
      *
      * @return string|null
      */
-    public function getMerchantCountry()
+    public function getMerchantCountry(): ?string
     {
         return $this->getConfigValue('paypal/general/merchant_country');
     }

@@ -3,7 +3,6 @@
  * See COPYING.txt for license details.
  */
 /*browser:true*/
-/*global define*/
 define([
     'ko',
     'jquery',
@@ -43,7 +42,7 @@ define([
             },
             template: 'PayPal_Braintree/payment/cc/vault',
             updatePaymentUrl: url.build('braintree/payment/updatepaymentmethod'),
-            vaultedCVV: ko.observable(""),
+            vaultedCVV: ko.observable(''),
             validatorManager: validatorManager,
             isValidCvv: false,
             onInstanceReady: function (instance) {
@@ -54,6 +53,7 @@ define([
         /**
          * Event fired by Braintree SDK whenever input value length matches the validation length.
          * In the case of a CVV, this is 3, or 4 for AMEX.
+         *
          * @param event
          */
         onValidityChange: function (event) {
@@ -73,20 +73,23 @@ define([
 
         /**
          * Is payment option active?
+         *
          * @returns {boolean}
          */
         isActive: function () {
-            var active = this.getId() === this.isChecked();
+            let active = this.getId() === this.isChecked();
+
             this.active(active);
             return active;
         },
 
         /**
          * Fired whenever a payment option is changed.
+         *
          * @param isActive
          */
         onActiveChange: function (isActive) {
-            var self = this;
+            let self = this;
 
             if (!isActive) {
                 return;
@@ -113,7 +116,8 @@ define([
          * Initialize the CVV input field with the Braintree Hosted Fields SDK.
          */
         initHostedCvvField: function () {
-            var self = this;
+            let self = this;
+
             client.create({
                 authorization: Braintree.getClientToken()
             }, function (clientError, clientInstance) {
@@ -146,6 +150,7 @@ define([
 
         /**
          * Return the payment method code.
+         *
          * @returns {string}
          */
         getCode: function () {
@@ -154,6 +159,7 @@ define([
 
         /**
          * Get last 4 digits of card
+         *
          * @returns {String}
          */
         getMaskedCard: function () {
@@ -162,6 +168,7 @@ define([
 
         /**
          * Get expiration date
+         *
          * @returns {String}
          */
         getExpirationDate: function () {
@@ -170,6 +177,7 @@ define([
 
         /**
          * Get card type
+         *
          * @returns {String}
          */
         getCardType: function () {
@@ -177,7 +185,20 @@ define([
         },
 
         /**
+         * Get card icons
+         *
+         * @param {String} type
+         * @returns {Boolean}
+         */
+        getIcons: function (type) {
+            return window.checkoutConfig.payment.braintree.icons.hasOwnProperty(type) ?
+                window.checkoutConfig.payment.braintree.icons[type]
+                : false;
+        },
+
+        /**
          * Get show CVV Field
+         *
          * @returns {Boolean}
          */
         showCvvVerify: function () {
@@ -186,12 +207,13 @@ define([
 
         /**
          * Show or hide the error message.
+         *
          * @param selector
          * @param state
          * @returns {boolean}
          */
         validateCvv: function (selector, state) {
-            var $selector = $(selector),
+            let $selector = $(selector),
                 invalidClass = 'braintree-hosted-fields-invalid';
 
             if (state === true) {
@@ -207,16 +229,15 @@ define([
          * Place order
          */
         placeOrder: function () {
-            var self = this;
+            let self = this;
 
             if (self.showCvvVerify()) {
-                if (!self.validateCvv('#' + self.getId() + '_cid', self.isValidCvv) || !additionalValidators.validate()) {
+                if (!self.validateCvv('#' + self.getId() + '_cid', self.isValidCvv)
+                    || !additionalValidators.validate()) {
                     return;
                 }
-            } else {
-                if (!additionalValidators.validate()) {
-                    return;
-                }
+            } else if (!additionalValidators.validate()) {
+                return;
             }
 
             fullScreenLoader.startLoader();
@@ -230,13 +251,10 @@ define([
                         });
                         return;
                     }
-                    $.getJSON(
-                        self.updatePaymentUrl,
-                        {
-                            'nonce': payload.nonce,
-                            'public_hash': self.publicHash
-                        }
-                    ).done(function (response) {
+                    $.getJSON(self.updatePaymentUrl, {
+                        'nonce': payload.nonce,
+                        'public_hash': self.publicHash
+                    }).done(function (response) {
                         if (response.success === false) {
                             fullScreenLoader.stopLoader();
                             globalMessageList.addErrorMessage({
@@ -245,7 +263,7 @@ define([
                             return;
                         }
                         self.getPaymentMethodNonce();
-                    })
+                    });
                 });
             } else {
                 self.getPaymentMethodNonce();
@@ -256,7 +274,7 @@ define([
          * Send request to get payment method nonce
          */
         getPaymentMethodNonce: function () {
-            var self = this;
+            let self = this;
 
             fullScreenLoader.startLoader();
             $.getJSON(self.nonceUrl, {
@@ -266,6 +284,7 @@ define([
                 fullScreenLoader.stopLoader();
                 self.hostedFields(function (formComponent) {
                     formComponent.setPaymentMethodNonce(response.paymentMethodNonce);
+                    formComponent.setCreditCardBin(response.details.bin);
                     formComponent.additionalData['public_hash'] = self.publicHash;
                     formComponent.code = self.code;
                     if (self.vaultedCVV()) {
@@ -275,15 +294,16 @@ define([
                     self.validatorManager.validate(formComponent, function () {
                         fullScreenLoader.stopLoader();
                         return formComponent.placeOrder('parent');
-                    }, function() {
+                    }, function () {
                         // No teardown actions required.
                         fullScreenLoader.stopLoader();
                         formComponent.setPaymentMethodNonce(null);
+                        formComponent.setCreditCardBin(null);
                     });
 
                 });
             }).fail(function (response) {
-                var error = JSON.parse(response.responseText);
+                let error = JSON.parse(response.responseText);
 
                 fullScreenLoader.stopLoader();
                 globalMessageList.addErrorMessage({

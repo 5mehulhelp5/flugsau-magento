@@ -19,39 +19,39 @@ use Magento\Framework\View\Asset\Source;
  */
 class ConfigProviderTest extends TestCase
 {
-    const SDK_URL = 'https://js.braintreegateway.com/v2/braintree.js';
-    const CLIENT_TOKEN = 'token';
-    const MERCHANT_ACCOUNT_ID = '245345';
+    private const SDK_URL = 'https://js.braintreegateway.com/v2/braintree.js';
+    private const CLIENT_TOKEN = 'token';
+    private const MERCHANT_ACCOUNT_ID = '245345';
 
     /**
      * @var Config|MockObject
      */
-    private $config;
+    private Config|MockObject $config;
 
     /**
      * @var BraintreeAdapter|MockObject
      */
-    private $braintreeAdapter;
+    private BraintreeAdapter|MockObject $braintreeAdapter;
 
     /**
-     * @var ConfigProvider
+     * @var ConfigProvider|MockObject
      */
-    private $configProvider;
+    private ConfigProvider|MockObject $configProvider;
 
     /**
      * @var PayPalConfig|MockObject
      */
-    private $payPalConfig;
+    private PayPalConfig|MockObject $payPalConfig;
 
     /**
-     * @var CcConfig
+     * @var CcConfig|MockObject
      */
-    private $ccConfig;
+    private CcConfig|MockObject $ccConfig;
 
     /**
-     * @var Source
+     * @var Source|MockObject
      */
-    private $assetSource;
+    private Source|MockObject $assetSource;
 
     protected function setUp(): void
     {
@@ -166,7 +166,6 @@ class ConfigProviderTest extends TestCase
                             'ccVaultCode' => ConfigProvider::CC_VAULT_CODE,
                             'style' => [
                                 'shape' => null,
-                                'size' => null,
                                 'color' => null
                             ],
                             'disabledFunding' => [

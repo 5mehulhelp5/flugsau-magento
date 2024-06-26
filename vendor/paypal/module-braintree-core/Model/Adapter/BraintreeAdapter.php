@@ -32,17 +32,17 @@ class BraintreeAdapter
     /**
      * @var Config
      */
-    private $config;
+    private Config $config;
 
     /**
      * @var StoreConfigResolver
      */
-    private $storeConfigResolver;
+    private StoreConfigResolver $storeConfigResolver;
 
     /**
      * @var LoggerInterface
      */
-    private $logger;
+    private LoggerInterface $logger;
 
     /**
      * BraintreeAdapter constructor.
@@ -286,6 +286,18 @@ class BraintreeAdapter
     }
 
     /**
+     * Create Braintree Payment Method.
+     *
+     * @param array $attribs
+     * @return Error|Successful
+     * @throws Exception
+     */
+    public function createPaymentMethod(array $attribs): Error|Successful
+    {
+        return PaymentMethod::create($attribs);
+    }
+
+    /**
      * Delete payment method token
      *
      * @param string $token
@@ -318,5 +330,27 @@ class BraintreeAdapter
     public function getCustomerById(string $id)
     {
         return Customer::find($id);
+    }
+
+    /**
+     * Create customer
+     *
+     * @param array $attrs
+     * @return Error|Successful
+     */
+    public function createCustomer(array $attrs): Error|Successful
+    {
+        return Customer::create($attrs);
+    }
+
+    /**
+     * Search customers.
+     *
+     * @param array $filters
+     * @return ResourceCollection
+     */
+    public function searchCustomers(array $filters): ResourceCollection
+    {
+        return Customer::search($filters);
     }
 }

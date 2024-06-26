@@ -59,7 +59,7 @@ class Executor
     }
 
     /** Set a custom default promise adapter. */
-    public static function setPromiseAdapter(PromiseAdapter $defaultPromiseAdapter = null): void
+    public static function setPromiseAdapter(?PromiseAdapter $defaultPromiseAdapter = null): void
     {
         self::$defaultPromiseAdapter = $defaultPromiseAdapter;
     }
@@ -86,8 +86,8 @@ class Executor
      * Always returns ExecutionResult and never throws.
      * All errors which occur during operation execution are collected in `$result->errors`.
      *
-     * @param mixed                     $rootValue
-     * @param mixed                     $contextValue
+     * @param mixed $rootValue
+     * @param mixed $contextValue
      * @param array<string, mixed>|null $variableValues
      *
      * @phpstan-param FieldResolver|null $fieldResolver
@@ -101,9 +101,9 @@ class Executor
         DocumentNode $documentNode,
         $rootValue = null,
         $contextValue = null,
-        array $variableValues = null,
-        string $operationName = null,
-        callable $fieldResolver = null
+        ?array $variableValues = null,
+        ?string $operationName = null,
+        ?callable $fieldResolver = null
     ): ExecutionResult {
         $promiseAdapter = new SyncPromiseAdapter();
 
@@ -127,8 +127,8 @@ class Executor
      *
      * Useful for async PHP platforms.
      *
-     * @param mixed                     $rootValue
-     * @param mixed                     $contextValue
+     * @param mixed $rootValue
+     * @param mixed $contextValue
      * @param array<string, mixed>|null $variableValues
      *
      * @phpstan-param FieldResolver|null $fieldResolver
@@ -141,9 +141,9 @@ class Executor
         DocumentNode $documentNode,
         $rootValue = null,
         $contextValue = null,
-        array $variableValues = null,
-        string $operationName = null,
-        callable $fieldResolver = null
+        ?array $variableValues = null,
+        ?string $operationName = null,
+        ?callable $fieldResolver = null
     ): Promise {
         $executor = (self::$implementationFactory)(
             $promiseAdapter,

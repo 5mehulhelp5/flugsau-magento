@@ -7,6 +7,7 @@ namespace PayPal\Braintree\Gateway\Request;
 
 use Magento\Payment\Gateway\Request\BuilderInterface;
 use Magento\Payment\Helper\Formatter;
+use PayPal\Braintree\Gateway\Config\Config;
 use PayPal\Braintree\Gateway\Helper\SubjectReader;
 
 class VaultCaptureDataBuilder implements BuilderInterface
@@ -16,16 +17,25 @@ class VaultCaptureDataBuilder implements BuilderInterface
     /**
      * @var SubjectReader
      */
-    private $subjectReader;
+    private SubjectReader $subjectReader;
 
     /**
-     * VaultCaptureDataBuilder Constructor
+     * @var Config
+     */
+    private Config $config;
+
+    /**
+     * Constructor
      *
      * @param SubjectReader $subjectReader
+     * @param Config $config
      */
-    public function __construct(SubjectReader $subjectReader)
-    {
+    public function __construct(
+        SubjectReader $subjectReader,
+        Config $config
+    ) {
         $this->subjectReader = $subjectReader;
+        $this->config = $config;
     }
 
     /**
@@ -38,9 +48,17 @@ class VaultCaptureDataBuilder implements BuilderInterface
         $extensionAttributes = $payment->getExtensionAttributes();
         $paymentToken = $extensionAttributes->getVaultPaymentToken();
 
+        if (is_null($paymentToken)) {
+            $paymentGatewayToken = false;
+        } else {
+            $paymentGatewayToken = $paymentToken->getGatewayToken();
+        }
+
         return [
             'amount' => $this->formatPrice($this->subjectReader->readAmount($buildSubject)),
-            'paymentMethodToken' => is_null($paymentToken) ?? $paymentToken->getGatewayToken()
+            'paymentMethodToken' => $paymentGatewayToken,
+            PaymentDataBuilder::MERCHANT_ACCOUNT_ID => $this->config
+                ->getMerchantAccountId($paymentDO->getOrder()->getStoreId())
         ];
     }
 }

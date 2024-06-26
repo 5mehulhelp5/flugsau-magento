@@ -22,6 +22,11 @@ use PayPal\Braintree\Gateway\Config\PayPalCredit\Config as PayPalCreditConfig;
 use PayPal\Braintree\Gateway\Config\PayPalPayLater\Config as PayPalPayLaterConfig;
 use PayPal\Braintree\Model\Ui\ConfigProvider;
 
+/**
+ * @api
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ * @since 100.0.2
+ */
 class Button extends Template implements ShortcutInterface
 {
     public const ALIAS_ELEMENT_INDEX = 'alias';
@@ -31,49 +36,48 @@ class Button extends Template implements ShortcutInterface
         'kind',
         'quantity',
         'unitAmount',
-        'unitTaxAmount',
         'productCode'
     ];
 
     /**
      * @var ResolverInterface $localeResolver
      */
-    private $localeResolver;
+    private ResolverInterface $localeResolver;
 
     /**
      * @var Session $checkoutSession
      */
-    private $checkoutSession;
+    private Session $checkoutSession;
 
     /**
      * @var Config $config
      */
-    protected $config;
+    protected Config $config;
 
     /**
      * @var BraintreeConfig $braintreeConfig
      */
-    private $braintreeConfig;
+    private BraintreeConfig $braintreeConfig;
 
     /**
      * @var ConfigProvider $configProvider
      */
-    private $configProvider;
+    private ConfigProvider $configProvider;
 
     /**
      * @var MethodInterface $payment
      */
-    private $payment;
+    private MethodInterface $payment;
 
     /**
      * @var PayPalCreditConfig $payPalCreditConfig
      */
-    private $payPalCreditConfig;
+    private PayPalCreditConfig $payPalCreditConfig;
 
     /**
      * @var PayPalPayLaterConfig $payPalPayLaterConfig
      */
-    private $payPalPayLaterConfig;
+    private PayPalPayLaterConfig $payPalPayLaterConfig;
 
     /**
      * Button constructor
@@ -283,6 +287,9 @@ class Button extends Template implements ShortcutInterface
      */
     public function getButtonColor(string $type): string
     {
+        if ($type === 'credit') {
+            return $this->config->getCreditButtonColor(Config::BUTTON_AREA_CART);
+        }
         return $this->config->getButtonColor(Config::BUTTON_AREA_CART, $type);
     }
 
@@ -291,6 +298,7 @@ class Button extends Template implements ShortcutInterface
      *
      * @param string $type
      * @return string
+     * @deprecated as Size field is redundant
      */
     public function getButtonSize(string $type): string
     {
@@ -430,12 +438,17 @@ class Button extends Template implements ShortcutInterface
     }
 
     /**
+     * Get cart line items
+     *
      * @return array
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
      */
     public function getCartLineItems(): array
     {
         $lineItems = [];
-        if ($this->braintreeConfig->canSendLineItems()) {
+        if ($this->config->canSendCartLineItemsForPayPal()) {
             try {
                 $quote = $this->checkoutSession->getQuote();
                 foreach ($quote->getItems() as $item) {
@@ -463,7 +476,6 @@ class Button extends Template implements ShortcutInterface
                             TransactionLineItem::DEBIT,
                             $this->numberToString((float)$item->getQty(), 2),
                             $this->numberToString($itemPrice, 2),
-                            $item->getTaxAmount() === null ? '0.00' : $this->numberToString($item->getTaxAmount(), 2),
                             $filteredFields['sku']
                         ]
                     );
@@ -476,9 +488,15 @@ class Button extends Template implements ShortcutInterface
                  *
                  * https://developer.paypal.com/braintree/docs/reference/response/transaction-line-item/php#discount_amount
                  */
-                $baseDiscountAmount = $this->numberToString(abs($quote->getShippingAddress()->getBaseDiscountAmount()), 2);
+                $baseDiscountAmount = $this->numberToString(
+                    abs($quote->getShippingAddress()->getBaseDiscountAmount()),
+                    2
+                );
                 if ($baseDiscountAmount <= 0) {
-                    $baseDiscountAmount = $this->numberToString(abs($quote->getBillingAddress()->getBaseDiscountAmount()), 2);
+                    $baseDiscountAmount = $this->numberToString(
+                        abs($quote->getBillingAddress()->getBaseDiscountAmount()),
+                        2
+                    );
                 }
                 if ($baseDiscountAmount > 0) {
                     $discountLineItems[] = [
@@ -498,7 +516,10 @@ class Button extends Template implements ShortcutInterface
                  * no any field exist in the client-side implementation
                  * to send the shipping amount to the Braintree.
                  */
-                $baseShippingAmount = $this->numberToString(abs($quote->getShippingAddress()->getBaseShippingAmount()), 2);
+                $baseShippingAmount = $this->numberToString(
+                    abs($quote->getShippingAddress()->getBaseShippingAmount()),
+                    2
+                );
                 if ($baseShippingAmount > 0) {
                     $shippingLineItem[] = [
                         'name' => 'Shipping',
@@ -511,22 +532,46 @@ class Button extends Template implements ShortcutInterface
                 }
 
                 /**
+                 * Adds Tax as LineItems for the PayPal transaction
+                 * if tax amount is greater than 0(Zero) to manage
+                 * the totals with client-side implementation as the way
+                 * of calculating the tax on items are really different
+                 * in PayPal and Adobe Commerce that was causing issue.
+                 */
+                $baseTaxAmount = $this->numberToString($quote->getShippingAddress()->getBaseTaxAmount(), 2);
+                if ($baseTaxAmount <= 0) {
+                    $baseTaxAmount = $this->numberToString($quote->getBillingAddress()->getBaseTaxAmount(), 2);
+                }
+                if ($baseTaxAmount > 0) {
+                    $taxLineItem[] = [
+                        'name' => 'Tax',
+                        'kind' => TransactionLineItem::DEBIT,
+                        'quantity' => 1.00,
+                        'unitAmount' => $baseTaxAmount
+                    ];
+
+                    $lineItems = array_merge($lineItems, $taxLineItem);
+                }
+
+                /**
                  * Adds Gift Wrapping for Order as LineItems for the PayPal
                  * transaction if it is greater than 0(Zero) to manage
                  * the totals with client-side implementation as there is
                  * no any field exist to send that amount to the Braintree.
                  */
-                $gwBasePrice = $this->numberToString($quote->getGwBasePrice(), 2);
-                if ($gwBasePrice > 0) {
-                    $gwBasePriceItems[] = [
-                        'name' => 'Gift Wrapping for Order',
-                        'kind' => TransactionLineItem::DEBIT,
-                        'quantity' => 1.00,
-                        'unitAmount' => $gwBasePrice,
-                        'totalAmount' => $gwBasePrice
-                    ];
+                if ($quote->getGwBasePrice()) {
+                    $gwBasePrice = $this->numberToString($quote->getGwBasePrice(), 2);
+                    if ($gwBasePrice > 0) {
+                        $gwBasePriceItems[] = [
+                            'name' => 'Gift Wrapping for Order',
+                            'kind' => TransactionLineItem::DEBIT,
+                            'quantity' => 1.00,
+                            'unitAmount' => $gwBasePrice,
+                            'totalAmount' => $gwBasePrice
+                        ];
 
-                    $lineItems = array_merge($lineItems, $gwBasePriceItems);
+                        $lineItems = array_merge($lineItems, $gwBasePriceItems);
+                    }
                 }
 
                 /**
@@ -535,17 +580,40 @@ class Button extends Template implements ShortcutInterface
                  * the totals with client-side implementation as there is
                  * no any field exist to send that amount to the Braintree.
                  */
-                $gwItemsBasePrice = $this->numberToString($quote->getGwItemsBasePrice(), 2);
-                if ($gwItemsBasePrice > 0) {
-                    $gwItemsBasePriceItems[] = [
-                        'name' => 'Gift Wrapping for Items',
-                        'kind' => TransactionLineItem::DEBIT,
-                        'quantity' => 1.00,
-                        'unitAmount' => $gwItemsBasePrice,
-                        'totalAmount' => $gwItemsBasePrice
-                    ];
+                if ($quote->getGwItemsBasePrice()) {
+                    $gwItemsBasePrice = $this->numberToString($quote->getGwItemsBasePrice(), 2);
+                    if ($gwItemsBasePrice > 0) {
+                        $gwItemsBasePriceItems[] = [
+                            'name' => 'Gift Wrapping for Items',
+                            'kind' => TransactionLineItem::DEBIT,
+                            'quantity' => 1.00,
+                            'unitAmount' => $gwItemsBasePrice,
+                            'totalAmount' => $gwItemsBasePrice
+                        ];
 
-                    $lineItems = array_merge($lineItems, $gwItemsBasePriceItems);
+                        $lineItems = array_merge($lineItems, $gwItemsBasePriceItems);
+                    }
+                }
+
+                /**
+                 * Adds Gift Wrapping Printed Card as LineItems for the PayPal
+                 * transaction if it is greater than 0(Zero) to manage
+                 * the totals with client-side implementation as there is
+                 * no any field exist to send that amount to the Braintree.
+                 */
+                if ($quote->getGwCardBasePrice()) {
+                    $gwCardBasePrice = $this->numberToString($quote->getGwCardBasePrice(), 2);
+                    if ($gwCardBasePrice > 0) {
+                        $gwCardBasePriceItems[] = [
+                            'name' => 'Printed Card',
+                            'kind' => TransactionLineItem::DEBIT,
+                            'quantity' => 1.00,
+                            'unitAmount' => $gwCardBasePrice,
+                            'totalAmount' => $gwCardBasePrice
+                        ];
+
+                        $lineItems = array_merge($lineItems, $gwCardBasePriceItems);
+                    }
                 }
 
                 /**
@@ -555,17 +623,19 @@ class Button extends Template implements ShortcutInterface
                  * as there is no any field exist to send that amount
                  * to the Braintree.
                  */
-                $baseCustomerBalAmountUsed = $this->numberToString(abs($quote->getBaseCustomerBalAmountUsed()), 2);
-                if ($baseCustomerBalAmountUsed > 0) {
-                    $storeCreditItems[] = [
-                        'name' => 'Store Credit',
-                        'kind' => TransactionLineItem::CREDIT,
-                        'quantity' => 1.00,
-                        'unitAmount' => $baseCustomerBalAmountUsed,
-                        'totalAmount' => $baseCustomerBalAmountUsed
-                    ];
+                if ($quote->getBaseCustomerBalAmountUsed()) {
+                    $baseCustomerBalAmountUsed = $this->numberToString(abs($quote->getBaseCustomerBalAmountUsed()), 2);
+                    if ($baseCustomerBalAmountUsed > 0) {
+                        $storeCreditItems[] = [
+                            'name' => 'Store Credit',
+                            'kind' => TransactionLineItem::CREDIT,
+                            'quantity' => 1.00,
+                            'unitAmount' => $baseCustomerBalAmountUsed,
+                            'totalAmount' => $baseCustomerBalAmountUsed
+                        ];
 
-                    $lineItems = array_merge($lineItems, $storeCreditItems);
+                        $lineItems = array_merge($lineItems, $storeCreditItems);
+                    }
                 }
 
                 /**
@@ -574,17 +644,19 @@ class Button extends Template implements ShortcutInterface
                  * the totals with client-side implementation as there is
                  * no any field exist to send that amount to the Braintree.
                  */
-                $baseGiftCardsAmountUsed = $this->numberToString(abs($quote->getBaseGiftCardsAmountUsed()), 2);
-                if ($baseGiftCardsAmountUsed > 0) {
-                    $giftCardsItems[] = [
-                        'name' => 'Gift Cards',
-                        'kind' => TransactionLineItem::CREDIT,
-                        'quantity' => 1.00,
-                        'unitAmount' => $baseGiftCardsAmountUsed,
-                        'totalAmount' => $baseGiftCardsAmountUsed
-                    ];
+                if ($quote->getBaseGiftCardsAmountUsed()) {
+                    $baseGiftCardsAmountUsed = $this->numberToString(abs($quote->getBaseGiftCardsAmountUsed()), 2);
+                    if ($baseGiftCardsAmountUsed > 0) {
+                        $giftCardsItems[] = [
+                            'name' => 'Gift Cards',
+                            'kind' => TransactionLineItem::CREDIT,
+                            'quantity' => 1.00,
+                            'unitAmount' => $baseGiftCardsAmountUsed,
+                            'totalAmount' => $baseGiftCardsAmountUsed
+                        ];
 
-                    $lineItems = array_merge($lineItems, $giftCardsItems);
+                        $lineItems = array_merge($lineItems, $giftCardsItems);
+                    }
                 }
 
                 if (count($lineItems) >= 250) {
@@ -599,6 +671,8 @@ class Button extends Template implements ShortcutInterface
     }
 
     /**
+     * Number to string conversion
+     *
      * @param float|string $num
      * @param int $precision
      * @return string
@@ -615,5 +689,24 @@ class Button extends Template implements ShortcutInterface
         }
 
         return (string) round($num, $precision);
+    }
+
+    /**
+     * Get button config
+     *
+     * @return array
+     * @throws InputException
+     * @throws LocalizedException
+     * @throws NoSuchEntityException
+     */
+    public function getButtonConfig(): array
+    {
+        return [
+            'clientToken' => $this->getClientToken(),
+            'currency' => $this->getCurrency(),
+            'environment' => $this->getEnvironment(),
+            'merchantCountry' => $this->getMerchantCountry(),
+            'isCreditActive' => $this->isCreditActive()
+        ];
     }
 }

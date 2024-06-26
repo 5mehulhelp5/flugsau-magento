@@ -1,4 +1,9 @@
 <?php
+/**
+ * Copyright © Magento, Inc. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+declare(strict_types=1);
 
 namespace PayPal\Braintree\Block\Credit\Calculator\Product;
 
@@ -17,17 +22,17 @@ class View extends Template
     /**
      * @var CreditPriceRepositoryInterface
      */
-    protected $creditPriceRepository;
+    protected CreditPriceRepositoryInterface $creditPriceRepository;
 
     /**
      * @var Registry
      */
-    protected $coreRegistry;
+    protected Registry $coreRegistry;
 
     /**
      * @var PayPalCreditConfig
      */
-    protected $config;
+    protected PayPalCreditConfig $config;
 
     /**
      * View constructor.
@@ -73,6 +78,8 @@ class View extends Template
     }
 
     /**
+     * Get price data
+     *
      * @return string|bool
      */
     public function getPriceData()
@@ -99,6 +106,8 @@ class View extends Template
     }
 
     /**
+     * Get merchant name
+     *
      * @return string|null
      */
     public function getMerchantName()

@@ -26,6 +26,7 @@ class Config extends \Magento\Payment\Gateway\Config\Config
     public const KEY_SANDBOX_PUBLIC_KEY = 'sandbox_public_key';
     public const KEY_SANDBOX_PRIVATE_KEY = 'sandbox_private_key';
     public const KEY_COUNTRY_CREDIT_CARD = 'countrycreditcard';
+    public const KEY_ENABLE_CHECKOUT_EXPRESS_PAYMENTS = 'enable_checkout_express_payments';
     public const KEY_CC_TYPES = 'cctypes';
     public const KEY_CC_TYPES_BRAINTREE_MAPPER = 'cctypes_braintree_mapper';
     public const KEY_USE_CVV = 'useccv';
@@ -376,6 +377,22 @@ class Config extends \Magento\Payment\Gateway\Config\Config
         return (bool) $this->scopeConfig->getValue(
             self::PATH_SEND_LINE_ITEMS,
             ScopeInterface::SCOPE_STORE
+        );
+    }
+
+    /**
+     * Are Express payments enabled on checkout?
+     *
+     * @param int|null $storeId
+     * @return bool
+     * @throws InputException
+     * @throws NoSuchEntityException
+     */
+    public function areCheckoutExpressPaymentsEnabled(int $storeId = null): bool
+    {
+        return (bool) $this->getValue(
+            self::KEY_ENABLE_CHECKOUT_EXPRESS_PAYMENTS,
+            $storeId ?? $this->storeConfigResolver->getStoreId()
         );
     }
 }

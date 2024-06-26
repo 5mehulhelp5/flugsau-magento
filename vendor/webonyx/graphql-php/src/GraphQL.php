@@ -70,10 +70,10 @@ class GraphQL
      *    Empty array would allow to skip query validation (may be convenient for persisted
      *    queries which are validated before persisting and assumed valid during execution)
      *
-     * @param string|DocumentNode        $source
-     * @param mixed                      $rootValue
-     * @param mixed                      $contextValue
-     * @param array<string, mixed>|null  $variableValues
+     * @param string|DocumentNode $source
+     * @param mixed $rootValue
+     * @param mixed $contextValue
+     * @param array<string, mixed>|null $variableValues
      * @param array<ValidationRule>|null $validationRules
      *
      * @api
@@ -86,10 +86,10 @@ class GraphQL
         $source,
         $rootValue = null,
         $contextValue = null,
-        array $variableValues = null,
-        string $operationName = null,
-        callable $fieldResolver = null,
-        array $validationRules = null
+        ?array $variableValues = null,
+        ?string $operationName = null,
+        ?callable $fieldResolver = null,
+        ?array $validationRules = null
     ): ExecutionResult {
         $promiseAdapter = new SyncPromiseAdapter();
 
@@ -128,10 +128,10 @@ class GraphQL
         $source,
         $rootValue = null,
         $context = null,
-        array $variableValues = null,
-        string $operationName = null,
-        callable $fieldResolver = null,
-        array $validationRules = null
+        ?array $variableValues = null,
+        ?string $operationName = null,
+        ?callable $fieldResolver = null,
+        ?array $validationRules = null
     ): Promise {
         try {
             $documentNode = $source instanceof DocumentNode

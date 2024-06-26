@@ -79,6 +79,6 @@ class ThreeDSecureDataBuilder implements BuilderInterface
         $billingAddress = $order->getBillingAddress();
         $specificCounties = $this->config->get3DSecureSpecificCountries();
 
-        return !(!empty($specificCounties) && !in_array($billingAddress->getCountryId(), $specificCounties));
+        return !(!empty($specificCounties) && !in_array($billingAddress->getCountryId(), $specificCounties, true));
     }
 }

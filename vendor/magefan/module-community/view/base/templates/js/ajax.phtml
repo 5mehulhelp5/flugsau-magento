@@ -7,11 +7,12 @@
 <?php
 /**
  * @var $block \Magefan\Community\Block\JsScript
+ * @var $mfSecureRenderer \Magefan\Community\Api\SecureHtmlRendererInterface
  */
 ?>
-<script>
+<?php $script = "
     window.MagefanJs = window.MagefanJs || {};
-    window.MagefanJs.ajax = function ajax(options) {
+    window.MagefanJs.ajax = function(options) {
         var xmlhttp = new XMLHttpRequest();
         xmlhttp.onreadystatechange = function () {
             if (xmlhttp.readyState == XMLHttpRequest.DONE && xmlhttp.status == 200) {
@@ -31,5 +32,6 @@
             xmlhttp.setRequestHeader(header, requestHeader[header]);
         }
         xmlhttp.send(options.data);
-    }
-</script>
+    };
+"; ?>
+<?= /* @noEscape */ $mfSecureRenderer->renderTag('script', [], $script, false) ?>

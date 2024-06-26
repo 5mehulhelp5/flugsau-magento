@@ -1,10 +1,76 @@
 Magento Functional Testing Framework Changelog
 ================================================
 
-4.3.5
+4.7.2
+---------
+### Enhancements
+* Fail static test when introduced filename does not equal the MFTF object name 
+  contained within.
+
+4.7.1
+---------
+### Enhancements
+*  Bumped all symfony dependencies to `^6.0
+*  Removed abandoned package codacy/coverage 
+*  Removed abandoned package sebastian/phpcpd
+*  Bumped monolog/monolog to ^3.0 
+*  Bumped nikic/php-parser to ^5.0
+
+4.7.0
+---------
+### Enhancements
+*  Bumped all symfony dependencies to `^6.0
+*  Unit Test for PTS enabled doesn't apply filter fix
+
+4.6.1
+---------
+### Enhancements
+* Supported setting custom timeout value for `magentoCLI` command via an environment variable `MAGENTO_CLI_WAIT_TIMEOUT`.
+
+4.6.0
+---------
+### Enhancements
+* Added Support for PHP 8.3 and enabled PR checks for PHP 8.3.
+* Bumped `symfony/console` dependency to `^6.0`.
+* Bumped `laminas/laminas-diactoros` dependency to `^3.0`.
+* Added no-ansi option to bin/mftf command.
+
+### Fixes
+* Fixed 8.3 deprecation errors.
+* Fixed The build with PTS enabled doesn't apply filter issue.
+* Change MFTF command <magentoCLI> to maintain Magento CLI output.
+
+4.5.0
+---------
+### Enhancements
+* Increase browser resolution to 1920x1080.
+* Add metadata to ACQE Repositories.
+* Add magento admin password to credentials example.
+
+### Fixes
+* Fixed test failure while running any test suite with an argument.
+
+4.4.2
 ---------
 ### Fixes
-* Fixed ANSI Color codes getting appended to output of bin/magento command.
+* Fixed PHP 8.2 deprecation warnings.
+
+4.4.1
+---------
+* Same as previous release
+
+4.4.0
+---------
+### Enhancements
+* Bumped `doctrine/annotations` dependency to `^2.0`.
+* Bumped `squizlabs/php_codesniffer` dependency to `^3.7`.
+* Bumped `php-webdriver/webdriver` dependency to `^1.14`.
+* Bumped `symfony/string` dependency to `^6.3`.
+* Bumped `symfony/dotenv` dependency to `^6.3`.
+* Bumped `symfony/finder` dependency to `^6.3`.
+* Bumped `symfony/http-foundation` dependency to `^6.3`.
+* Bumped `symfony/mime` dependency to `^6.3`.
+* Enhanced MFTF Modularity Test with "allow failure list".
 
 4.3.4
 ---------

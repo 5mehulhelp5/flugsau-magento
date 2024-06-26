@@ -33,22 +33,22 @@ abstract class AbstractEndpoint
     protected $params = [];
 
     /**
-     * @var string
+     * @var string|null
      */
     protected $index = null;
 
     /**
-     * @var string|int
+     * @var string|int|null
      */
     protected $id = null;
 
     /**
-     * @var string
+     * @var string|null
      */
     protected $method = null;
 
     /**
-     * @var string|array
+     * @var string|array|null
      */
     protected $body = null;
 
@@ -81,7 +81,7 @@ abstract class AbstractEndpoint
     /**
      * Set the parameters for this endpoint
      *
-     * @param string[] $params Array of parameters
+     * @param mixed[] $params Array of parameters
      * @return $this
      */
     public function setParams(array $params)
@@ -90,6 +90,8 @@ abstract class AbstractEndpoint
         $this->checkUserParams($params);
         $params = $this->convertCustom($params);
         $this->params = $this->convertArraysToStrings($params);
+
+        $this->checkForDeprecations();
 
         return $this;
     }
@@ -130,7 +132,7 @@ abstract class AbstractEndpoint
     }
 
     /**
-     * @param int|string $docID
+     * @param int|string|null $docID
      *
      * @return $this
      */
@@ -279,5 +281,40 @@ abstract class AbstractEndpoint
         }
 
         return false;
+    }
+
+    /**
+     * This function returns all param deprecations also optional with an replacement field
+     *
+     * @return array<string, string|null>
+     */
+    protected function getParamDeprecation(): array
+    {
+        return [];
+    }
+
+    private function checkForDeprecations(): void
+    {
+        $deprecations = $this->getParamDeprecation();
+
+        if ($deprecations === []) {
+            return;
+        }
+
+        $keys = array_keys($this->params);
+
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $deprecations)) {
+                $val = $deprecations[$key];
+
+                $msg = sprintf('The parameter "%s" is deprecated and will be removed without replacement in the next major version', $key);
+
+                if ($val) {
+                    $msg = sprintf('The parameter "%s" is deprecated and will be replaced with parameter "%s" in the next major version', $key, $val);
+                }
+
+                trigger_error($msg, E_USER_DEPRECATED);
+            }
+        }
     }
 }

@@ -17,18 +17,21 @@
     "ext-json": ">=1.3.7",
     "ext-curl": "*",
     "ezimuel/ringphp": "^1.1.2",
-    "psr/log": "^1|^2"
+    "psr/log": "^1|^2|^3"
   },
   "require-dev": {
     "ext-zip": "*",
+    "aws/aws-sdk-php": "^3.0",
     "friendsofphp/php-cs-fixer": "^3.0",
     "mockery/mockery": "^1.2",
-    "phpstan/phpstan": "^0.12",
+    "phpstan/phpstan": "^1.7.15",
+    "phpstan/phpstan-mockery": "^1.1.0",
     "phpunit/phpunit": "^9.3",
-    "symfony/finder": "~4.0"
+    "symfony/finder": "~4.0 || ~5.0"
   },
   "suggest": {
-    "monolog/monolog": "Allows for client-level logging and tracing"
+    "monolog/monolog": "Allows for client-level logging and tracing",
+    "aws/aws-sdk-php": "Required (^3.0.0) in order to use the SigV4 handler"
   },
   "autoload": {
     "psr-4": {
@@ -52,10 +55,20 @@
       "phpstan analyse --no-progress"
     ],
     "unit": [
-      "phpunit"
+      "phpunit --exclude-group Integration"
     ],
     "integration": [
-      "phpunit -c phpunit-integration-tests.xml"
+      "phpunit --group Integration"
+    ],
+    "phpunit": [
+      "phpunit"
+    ],
+    "apigen": [
+      "rm -f apigen",
+      "curl -L https://github.com/ApiGen/ApiGen/releases/download/v7.0.0-alpha.4/apigen.phar -o apigen",
+      "chmod +x apigen",
+      "./apigen src --output docs",
+      "rm -f apigen"
     ]
   }
 }

@@ -5,8 +5,9 @@
  */
 namespace PayPal\Braintree\Gateway\Command;
 
-use Magento\Framework\Exception\InputException;
+use Magento\Framework\App\ObjectManager;
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Message\ManagerInterface as MessageManagerInterface;
 use Magento\Framework\Phrase;
 use Magento\Payment\Gateway\CommandInterface;
 use Magento\Payment\Gateway\Http\ClientException;
@@ -17,8 +18,8 @@ use Magento\Payment\Gateway\Request\BuilderInterface;
 use Magento\Payment\Gateway\Response\HandlerInterface;
 use Magento\Payment\Gateway\Validator\ValidatorInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
-use Magento\Sales\Model\Order;
 use PayPal\Braintree\Gateway\Helper\SubjectReader;
+use PayPal\Braintree\Helper\Order as OrderHelper;
 use Psr\Log\LoggerInterface;
 use Magento\Payment\Gateway\Command\CommandException;
 
@@ -31,32 +32,32 @@ class GatewayCommand implements CommandInterface
     /**
      * @var BuilderInterface
      */
-    private $requestBuilder;
+    private BuilderInterface $requestBuilder;
 
     /**
      * @var TransferFactoryInterface
      */
-    private $transferFactory;
+    private TransferFactoryInterface $transferFactory;
 
     /**
      * @var ClientInterface
      */
-    private $client;
+    private ClientInterface $client;
 
     /**
-     * @var HandlerInterface
+     * @var ?HandlerInterface
      */
-    private $handler;
+    private ?HandlerInterface $handler;
 
     /**
-     * @var ValidatorInterface
+     * @var ?ValidatorInterface
      */
-    private $validator;
+    private ?ValidatorInterface $validator;
 
     /**
      * @var LoggerInterface
      */
-    private $logger;
+    private LoggerInterface $logger;
 
     /**
      * @var SubjectReader
@@ -69,6 +70,16 @@ class GatewayCommand implements CommandInterface
     private OrderRepositoryInterface $orderRepository;
 
     /**
+     * @var OrderHelper
+     */
+    private OrderHelper $orderHelper;
+
+    /**
+     * @var MessageManagerInterface
+     */
+    private MessageManagerInterface $messageManager;
+
+    /**
      * @param BuilderInterface $requestBuilder
      * @param TransferFactoryInterface $transferFactory
      * @param ClientInterface $client
@@ -77,6 +88,8 @@ class GatewayCommand implements CommandInterface
      * @param OrderRepositoryInterface $orderRepository
      * @param HandlerInterface|null $handler
      * @param ValidatorInterface|null $validator
+     * @param OrderHelper|null $orderHelper
+     * @param MessageManagerInterface|null $messageManager
      */
     public function __construct(
         BuilderInterface $requestBuilder,
@@ -86,7 +99,9 @@ class GatewayCommand implements CommandInterface
         SubjectReader $subjectReader,
         OrderRepositoryInterface $orderRepository,
         HandlerInterface $handler = null,
-        ValidatorInterface $validator = null
+        ValidatorInterface $validator = null,
+        OrderHelper $orderHelper = null,
+        MessageManagerInterface $messageManager = null
     ) {
         $this->requestBuilder = $requestBuilder;
         $this->transferFactory = $transferFactory;
@@ -96,6 +111,8 @@ class GatewayCommand implements CommandInterface
         $this->logger = $logger;
         $this->subjectReader = $subjectReader;
         $this->orderRepository = $orderRepository;
+        $this->orderHelper = $orderHelper ?: ObjectManager::getInstance()->get(OrderHelper::class);
+        $this->messageManager = $messageManager ?: ObjectManager::getInstance()->get(MessageManagerInterface::class);
     }
 
     /**
@@ -128,12 +145,11 @@ class GatewayCommand implements CommandInterface
                     $paymentDO = $this->subjectReader->readPayment($commandSubject);
                     $order = $this->orderRepository->get($paymentDO->getOrder()->getId());
 
-                    $order->setState(Order::STATE_CANCELED);
-                    $order->setStatus(Order::STATE_CANCELED);
-
+                    $order = $this->orderHelper->cancelExpired($order);
                     $this->orderRepository->save($order);
 
-                    throw new CommandException(__("Order has been cancelled but Braintree Transaction hasn't been voided as Authorization has expired for this transaction."));
+                    $this->messageManager->addWarningMessage("Order has been cancelled but Braintree Transaction hasn't been voided as Authorization has expired for this transaction.");
+                    return;
                 }
                 throw new CommandException($this->getExceptionMessage($response));
             }
@@ -148,6 +164,8 @@ class GatewayCommand implements CommandInterface
     }
 
     /**
+     * Get exception message
+     *
      * @param $response
      * @return Phrase
      */
@@ -170,6 +188,8 @@ class GatewayCommand implements CommandInterface
     }
 
     /**
+     * Log exceptions
+     *
      * @param Phrase[] $fails
      * @return void
      */

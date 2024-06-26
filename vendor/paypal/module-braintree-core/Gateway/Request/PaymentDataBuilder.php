@@ -40,6 +40,12 @@ class PaymentDataBuilder implements BuilderInterface
     public const MERCHANT_ACCOUNT_ID = 'merchantAccountId';
 
     /**
+     * The Braintree vaulted customer ID used to create a transaction.
+     * A customer ID should only be provided if making a transaction using an existing vaulted payment method.
+     */
+    public const CUSTOMER_ID = 'customerId';
+
+    /**
      * Order ID Key
      */
     public const ORDER_ID = 'orderId';

@@ -196,6 +196,9 @@ class ProductPage extends Button
      */
     public function getButtonColor(string $type): string
     {
+        if ($type === 'credit') {
+            return $this->config->getCreditButtonColor(Config::BUTTON_AREA_PDP);
+        }
         return $this->config->getButtonColor(Config::BUTTON_AREA_PDP, $type);
     }
 
@@ -204,6 +207,7 @@ class ProductPage extends Button
      *
      * @param string $type
      * @return string
+     * @deprecated as Size field is redundant
      */
     public function getButtonSize(string $type): string
     {
@@ -277,7 +281,7 @@ class ProductPage extends Button
     }
 
     /**
-     *
+     * Get Cart Line items
      *
      * @return array
      */

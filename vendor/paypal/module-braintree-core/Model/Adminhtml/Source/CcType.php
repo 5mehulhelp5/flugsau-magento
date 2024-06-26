@@ -14,7 +14,7 @@ class CcType extends \Magento\Payment\Model\Source\Cctype
      */
     public function getAllowedTypes(): array
     {
-        return ['VI', 'MC', 'AE', 'DI', 'JCB', 'MI', 'DN'];
+        return ['VI', 'MC', 'AE', 'DI', 'JCB', 'MI', 'DN', 'UPD'];
     }
 
     /**

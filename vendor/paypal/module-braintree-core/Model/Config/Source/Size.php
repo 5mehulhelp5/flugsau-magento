@@ -40,6 +40,7 @@ class Size implements ArrayInterface
 
     /**
      * Values in the format needed for the PayPal JS SDK
+     *
      * @return array
      */
     public function toRawValues(): array

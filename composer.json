@@ -8,7 +8,7 @@
         "AFL-3.0"
     ],
     "require": {
-        "magento/product-community-edition": "2.4.6",
+        "magento/product-community-edition": "2.4.7-p1",
         "magento/composer-dependency-version-audit-plugin": "~0.1",
         "magefan/module-blog": "^2.10",
         "mageplaza/magento-2-german-language-pack": "dev-master",
@@ -17,27 +17,25 @@
         "mageplaza/module-banner-slider": "2.0.3",
         "mageplaza/module-core": "1.4.3",
         "boldcommerce/magento2-ordercomments": "^1.6",
-        "magento/composer-root-update-plugin": "~2.0"
+        "magento/composer-root-update-plugin": "^2.0.4"
     },
     "require-dev": {
         "allure-framework/allure-phpunit": "^2",
-        "dealerdirect/phpcodesniffer-composer-installer": "^0.7.0",
+        "dealerdirect/phpcodesniffer-composer-installer": "^0.7 || ^1.0",
         "dg/bypass-finals": "^1.4",
-        "friendsofphp/php-cs-fixer": "^3.8",
+        "friendsofphp/php-cs-fixer": "^3.22",
         "lusitanian/oauth": "^0.8",
-        "magento/magento2-functional-testing-framework": "^4.2.1",
+        "magento/magento2-functional-testing-framework": "^4.7",
         "pdepend/pdepend": "^2.10",
         "phpmd/phpmd": "^2.12",
         "phpstan/phpstan": "^1.9",
         "phpunit/phpunit": "^9.5",
         "sebastian/phpcpd": "^6.0",
-        "symfony/finder": "^5.4"
+        "symfony/finder": "^6.4"
     },
     "autoload": {
         "psr-4": {
-            "Magento\\Framework\\": "lib/internal/Magento/Framework/",
-            "Magento\\Setup\\": "setup/src/Magento/Setup/",
-            "Magento\\": "app/code/Magento/"
+            "Magento\\Setup\\": "setup/src/Magento/Setup/"
         },
         "psr-0": {
             "": [

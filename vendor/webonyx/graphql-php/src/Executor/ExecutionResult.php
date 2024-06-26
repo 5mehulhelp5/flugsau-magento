@@ -79,10 +79,10 @@ class ExecutionResult implements \JsonSerializable
 
     /**
      * @param array<string, mixed>|null $data
-     * @param array<Error>              $errors
-     * @param array<string, mixed>      $extensions
+     * @param array<Error> $errors
+     * @param array<string, mixed> $extensions
      */
-    public function __construct(array $data = null, array $errors = [], array $extensions = [])
+    public function __construct(?array $data = null, array $errors = [], array $extensions = [])
     {
         $this->data = $data;
         $this->errors = $errors;

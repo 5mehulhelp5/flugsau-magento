@@ -1,4 +1,8 @@
 <?php
+/**
+ * Copyright © Magento, Inc. All rights reserved.
+ * See COPYING.txt for license details.
+ */
 declare(strict_types=1);
 
 namespace PayPal\Braintree\Block\System\Config\Form\Field;
@@ -14,7 +18,7 @@ class RequiresStatus extends Field
      * @param AbstractElement $element
      * @return string
      */
-    public function render(AbstractElement $element)
+    public function render(AbstractElement $element): string
     {
         if (str_contains($element->getClass(), 'braintree_ach_direct_debit_')) {
             $requiresClass = str_replace('braintree_ach_direct_debit_', '', $element->getClass());

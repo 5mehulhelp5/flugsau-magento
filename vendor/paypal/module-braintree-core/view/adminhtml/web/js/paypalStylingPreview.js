@@ -8,18 +8,141 @@ require([
     'domReady!'
 ], function (_, $) {
     'use strict';
-    let buttonIds = [], currentButtonId = '';
-    let location = '', buttonType = '', buttonShow = '', buttonLabel = '', buttonColor = '', buttonShape = '', buttonSize = '';
-    let messagingShow = '', messagingLayout = '', messagingLogo = '', messagingLogoPosition = '', messagingTextColor = '';
+    let buttonIds = [], currentButtonId = '',
 
-    function getCurrentLocationAndButtonType()
-    {
-        location = $('.payment-location').val();
-        buttonType = $('.' + location + '-button-type').val();
-    }
+        /**
+     * Update PayPal, Credit and Pay Later button styling if applicable
+     * @param location
+     * @param buttonType
+     * @param buttonShow
+     * @param buttonLabel
+     * @param buttonColor
+     * @param buttonShape
+     */
+        updatePayPalButtonStyling = function (buttonType, buttonShow, buttonLabel, buttonColor, buttonShape) {
+            $('.action-braintree-paypal-logo').each(function () {
+                if ($.inArray($(this).attr('id'), buttonIds) === -1) {
+                    buttonIds.push($(this).attr('id'));
+                }
+            });
+
+            buttonIds.each(function (id) {
+                let result = id.startsWith(buttonType);
+
+                if (result === true) {
+                    currentButtonId = id;
+                }
+            });
+
+            if (!currentButtonId) {
+                return;
+            }
+
+            let currentButtonElement = $('#' + currentButtonId),
+                style, fundingSource, button;
+
+            if (!currentButtonElement.length) {
+                return;
+            }
+
+            style = {
+                color: buttonColor,
+                shape: buttonShape,
+                label: buttonLabel
+            };
+            fundingSource = buttonType;
+            button;
+
+            style.fundingicons = true;
+
+            // Render
+            button = window.paypal.Buttons({
+                fundingSource: fundingSource,
+                style: style,
+
+                onInit: function (data, actions) {
+                    actions.disable();
+                }
+            });
+
+            if (!button.isEligible()) {
+                console.log('PayPal ' + buttonType.toUpperCase() + ' button is not eligible');
+                if (currentButtonElement.attr('id').startsWith(buttonType)) {
+                    currentButtonElement.parent().remove();
+                }
+                return;
+            }
+            if (currentButtonElement.length) {
+                currentButtonElement.empty();
+                if (buttonShow === '1') {
+                    button.render('#' + currentButtonElement.attr('id'));
+                }
+            }
+        },
+
+        /**
+     * Render and update Pay Later messaging style
+     * @param location
+     * @param messagingShow
+     * @param messagingLayout
+     * @param messagingLogo
+     * @param messagingLogoPosition
+     * @param messagingTextColor
+     */
+        renderPayLaterMessages = function (location, messagingShow, messagingLayout, messagingLogo,
+            messagingLogoPosition, messagingTextColor) {
+            $('.action-braintree-paypal-message').each(function () {
+                let messageElement = $('#' + $(this).attr('id')),
+
+                    payLaterMessageStyle = {
+                        layout: messagingLayout,
+                        text: {
+                            color: messagingTextColor
+                        },
+                        logo: {
+                            type: messagingLogo,
+                            position: messagingLogoPosition
+                        }
+                    },
+
+                    messageElementId = $(messageElement).attr('id'),
+                    messageAmount = $(messageElement).data('pp-amount'),
+                    parentElementId = messageElement.closest('tr').attr('id'),
+
+                    messages = window.paypal.Messages({
+                        amount: $(messageElement).data('pp-amount'),
+                        pageType: location,
+                        style: payLaterMessageStyle
+                    });
+
+                if (messageElement.length) {
+                    if (messagingShow === '1') {
+                        messageElement.remove();
+                        $('#' + parentElementId + ' td.value').append(`
+                        <div class="action-braintree-paypal-message"
+                            id="${messageElementId}"
+                            data-pp-amount="${messageAmount}"
+                            data-pp-type="${location}"
+                            data-messaging-show="${messagingShow}"
+                            data-messaging-layout="${messagingLayout}"
+                            data-messaging-logo="${messagingLogo}"
+                            data-messaging-logo-position="${messagingLogoPosition}"
+                            data-messaging-text-color="${messagingTextColor}">
+                        </div>`);
+                        messages.render('#' + messageElementId);
+                    } else {
+                        messageElement.hide();
+                    }
+                }
+            });
+        };
 
     $(document).ready(function () {
-        getCurrentLocationAndButtonType();
+        let location = $('.payment-location').val(),
+            buttonType = $('.' + location + '-button-type').val(),
+            buttonShow = '', buttonLabel = '', buttonColor = '', buttonShape = '',
+            messagingShow = '', messagingLayout = '', messagingLogo = '',
+            messagingLogoPosition = '', messagingTextColor = '';
 
         $('.payment-location').on('change', function (customEvent) {
             location = $(this).val();
@@ -28,9 +151,9 @@ require([
             buttonLabel = $('.' + location + '-' + buttonType + '-label').val();
             buttonColor = $('.' + location + '-' + buttonType + '-color').val();
             buttonShape = $('.' + location + '-' + buttonType + '-shape').val();
-            buttonSize = $('.' + location + '-' + buttonType + '-size').val();
 
-            updatePayPalButtonStyling(location, buttonType, buttonShow, buttonLabel, buttonColor, buttonShape, buttonSize);
+            window.hidePaypalSections();
+            updatePayPalButtonStyling(buttonType, buttonShow, buttonLabel, buttonColor, buttonShape);
 
             // render pay later messages when location changed
             messagingShow = $('.' + location + '-messaging-show').val();
@@ -39,20 +162,20 @@ require([
             messagingLogoPosition = $('.' + location + '-messaging-logo-position').val();
             messagingTextColor = $('.' + location + '-messaging-text-color').val();
 
-            renderPayLaterMessages(location, messagingShow, messagingLayout, messagingLogo, messagingLogoPosition, messagingTextColor);
+            renderPayLaterMessages(messagingShow, messagingLayout, messagingLogo,
+                messagingLogoPosition, messagingTextColor);
             customEvent.stopImmediatePropagation();
         });
 
-        $("select").change(function () {
+        $('select').change(function () {
             $(document).on('change', '.' + location + '-button-type', function (customEvent) {
                 buttonType = $(this).val();
                 buttonShow = $('.' + location + '-' + buttonType + '-show').val();
                 buttonLabel = $('.' + location + '-' + buttonType + '-label').val();
                 buttonColor = $('.' + location + '-' + buttonType + '-color').val();
                 buttonShape = $('.' + location + '-' + buttonType + '-shape').val();
-                buttonSize = $('.' + location + '-' + buttonType + '-size').val();
 
-                updatePayPalButtonStyling(location, buttonType, buttonShow, buttonLabel, buttonColor, buttonShape, buttonSize);
+                updatePayPalButtonStyling(buttonType, buttonShow, buttonLabel, buttonColor, buttonShape);
                 customEvent.stopImmediatePropagation();
             });
 
@@ -61,9 +184,8 @@ require([
                 buttonLabel = $('.' + location + '-' + buttonType + '-label').val();
                 buttonColor = $('.' + location + '-' + buttonType + '-color').val();
                 buttonShape = $('.' + location + '-' + buttonType + '-shape').val();
-                buttonSize = $('.' + location + '-' + buttonType + '-size').val();
 
-                updatePayPalButtonStyling(location, buttonType, buttonShow, buttonLabel, buttonColor, buttonShape, buttonSize);
+                updatePayPalButtonStyling(buttonType, buttonShow, buttonLabel, buttonColor, buttonShape);
                 customEvent.stopImmediatePropagation();
             });
 
@@ -73,9 +195,8 @@ require([
                 buttonShow = $('.' + location + '-' + buttonType + '-show').val();
                 buttonColor = $('.' + location + '-' + buttonType + '-color').val();
                 buttonShape = $('.' + location + '-' + buttonType + '-shape').val();
-                buttonSize = $('.' + location + '-' + buttonType + '-size').val();
 
-                updatePayPalButtonStyling(location, buttonType, buttonShow, buttonLabel, buttonColor, buttonShape, buttonSize);
+                updatePayPalButtonStyling(buttonType, buttonShow, buttonLabel, buttonColor, buttonShape);
                 customEvent.stopImmediatePropagation();
             });
 
@@ -84,9 +205,8 @@ require([
                 buttonShow = $('.' + location + '-' + buttonType + '-show').val();
                 buttonLabel = $('.' + location + '-' + buttonType + '-label').val();
                 buttonShape = $('.' + location + '-' + buttonType + '-shape').val();
-                buttonSize = $('.' + location + '-' + buttonType + '-size').val();
 
-                updatePayPalButtonStyling(location, buttonType, buttonShow, buttonLabel, buttonColor, buttonShape, buttonSize);
+                updatePayPalButtonStyling(buttonType, buttonShow, buttonLabel, buttonColor, buttonShape);
                 customEvent.stopImmediatePropagation();
             });
 
@@ -95,20 +215,8 @@ require([
                 buttonShow = $('.' + location + '-' + buttonType + '-show').val();
                 buttonLabel = $('.' + location + '-' + buttonType + '-label').val();
                 buttonColor = $('.' + location + '-' + buttonType + '-color').val();
-                buttonSize = $('.' + location + '-' + buttonType + '-size').val();
 
-                updatePayPalButtonStyling(location, buttonType, buttonShow, buttonLabel, buttonColor, buttonShape, buttonSize);
-                customEvent.stopImmediatePropagation();
-            });
-
-            $(document).on('change', '.' + location + '-' + buttonType + '-size', function (customEvent) {
-                buttonSize = $(this).val();
-                buttonShow = $('.' + location + '-' + buttonType + '-show').val();
-                buttonLabel = $('.' + location + '-' + buttonType + '-label').val();
-                buttonColor = $('.' + location + '-' + buttonType + '-color').val();
-                buttonShape = $('.' + location + '-' + buttonType + '-shape').val();
-
-                updatePayPalButtonStyling(location, buttonType, buttonShow, buttonLabel, buttonColor, buttonShape, buttonSize);
+                updatePayPalButtonStyling(buttonType, buttonShow, buttonLabel, buttonColor, buttonShape);
                 customEvent.stopImmediatePropagation();
             });
 
@@ -119,7 +227,8 @@ require([
                 messagingLogoPosition = $('.' + location + '-messaging-logo-position').val();
                 messagingTextColor = $('.' + location + '-messaging-text-color').val();
 
-                renderPayLaterMessages(location, messagingShow, messagingLayout, messagingLogo, messagingLogoPosition, messagingTextColor);
+                renderPayLaterMessages(location, messagingShow, messagingLayout,
+                    messagingLogo, messagingLogoPosition, messagingTextColor);
                 customEvent.stopImmediatePropagation();
             });
 
@@ -130,7 +239,8 @@ require([
                 messagingLogoPosition = $('.' + location + '-messaging-logo-position').val();
                 messagingTextColor = $('.' + location + '-messaging-text-color').val();
 
-                renderPayLaterMessages(location, messagingShow, messagingLayout, messagingLogo, messagingLogoPosition, messagingTextColor);
+                renderPayLaterMessages(location, messagingShow, messagingLayout,
+                    messagingLogo, messagingLogoPosition, messagingTextColor);
                 customEvent.stopImmediatePropagation();
             });
 
@@ -141,7 +251,8 @@ require([
                 messagingLogoPosition = $('.' + location + '-messaging-logo-position').val();
                 messagingTextColor = $('.' + location + '-messaging-text-color').val();
 
-                renderPayLaterMessages(location, messagingShow, messagingLayout, messagingLogo, messagingLogoPosition, messagingTextColor);
+                renderPayLaterMessages(location, messagingShow, messagingLayout,
+                    messagingLogo, messagingLogoPosition, messagingTextColor);
                 customEvent.stopImmediatePropagation();
             });
 
@@ -152,7 +263,8 @@ require([
                 messagingLogoPosition = $(this).val();
                 messagingTextColor = $('.' + location + '-messaging-text-color').val();
 
-                renderPayLaterMessages(location, messagingShow, messagingLayout, messagingLogo, messagingLogoPosition, messagingTextColor);
+                renderPayLaterMessages(location, messagingShow, messagingLayout,
+                    messagingLogo, messagingLogoPosition, messagingTextColor);
                 customEvent.stopImmediatePropagation();
             });
 
@@ -163,113 +275,10 @@ require([
                 messagingLogoPosition = $('.' + location + '-messaging-logo-position').val();
                 messagingTextColor = $(this).val();
 
-                renderPayLaterMessages(location, messagingShow, messagingLayout, messagingLogo, messagingLogoPosition, messagingTextColor);
+                renderPayLaterMessages(location, messagingShow, messagingLayout,
+                    messagingLogo, messagingLogoPosition, messagingTextColor);
                 customEvent.stopImmediatePropagation();
             });
         });
     });
-
-    /**
-     * Update PayPal, Credit and Pay Later button styling if applicable
-     * @param location
-     * @param buttonType
-     * @param buttonShow
-     * @param buttonLabel
-     * @param buttonColor
-     * @param buttonShape
-     * @param buttonSize
-     */
-    let updatePayPalButtonStyling = function (location, buttonType, buttonShow, buttonLabel, buttonColor, buttonShape, buttonSize) {
-        $('.action-braintree-paypal-logo').each(function () {
-            if ($.inArray($(this).attr('id'), buttonIds) === -1) {
-                buttonIds.push($(this).attr('id'));
-            }
-        });
-
-        buttonIds.each(function (id) {
-            let result = id.startsWith(buttonType);
-            if (result === true) {
-                currentButtonId = id;
-            }
-        });
-
-        let currentButtonElement = $('#' + currentButtonId);
-        if (currentButtonElement.length) {
-            let style = {
-                color: buttonColor,
-                shape: buttonShape,
-                size: buttonSize,
-                label: buttonLabel
-            };
-            style.fundingicons = true;
-            let fundingSource = buttonType;
-
-            // Render
-            let button = paypal.Buttons({
-                fundingSource: fundingSource,
-                style: style,
-
-                onInit: function (data, actions) {
-                    actions.disable();
-                }
-            });
-            if (!button.isEligible()) {
-                console.log('PayPal button is not eligible');
-                currentButtonElement.parent().remove();
-                return;
-            }
-            if (currentButtonElement.length) {
-                currentButtonElement.empty();
-                if (buttonShow === '1') {
-                    button.render('#' + currentButtonElement.attr('id'));
-                }
-            }
-        }
-    };
-
-    /**
-     * Render and update Pay Later messaging style
-     * @param location
-     * @param messagingShow
-     * @param messagingLayout
-     * @param messagingLogo
-     * @param messagingLogoPosition
-     * @param messagingTextColor
-     */
-    let renderPayLaterMessages = function (location, messagingShow, messagingLayout, messagingLogo, messagingLogoPosition, messagingTextColor) {
-        $('.action-braintree-paypal-message').each(function () {
-            let messageElement = $('#' + $(this).attr('id'));
-
-            let payLaterMessageStyle = {
-                layout: messagingLayout,
-                text: {
-                    color: messagingTextColor
-                },
-                logo: {
-                    type: messagingLogo,
-                    position: messagingLogoPosition
-                }
-            };
-
-            let messageElementId = $(messageElement).attr('id');
-            let messageAmount = $(messageElement).data('pp-amount');
-            let parentElementId = messageElement.closest('tr').attr('id');
-
-            let messages = paypal.Messages({
-                amount: $(messageElement).data('pp-amount'),
-                pageType: location,
-                style: payLaterMessageStyle
-            });
-
-            if (messageElement.length) {
-                if (messagingShow === '1') {
-                    messageElement.remove();
-                    $('#' + parentElementId + ' td.value').append('<div class="action-braintree-paypal-message" id="' + messageElementId + '" data-pp-amount="' + messageAmount + '" data-pp-type="' + location + '" data-messaging-show="' + messagingShow + '" data-messaging-layout="' + messagingLayout + '" data-messaging-logo="' + messagingLogo + '" data-messaging-logo-position="' + messagingLogoPosition + '" data-messaging-text-color="' + messagingTextColor + '"></div>');
-                    messages.render('#' + messageElementId);
-                } else {
-                    messageElement.hide();
-                }
-            }
-        });
-    };
 });

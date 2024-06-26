@@ -3,11 +3,18 @@
     "description": "Fork from the Magento Braintree 2.2.0 module by Gene Commerce for PayPal.",
     "type": "magento2-module",
     "license": "proprietary",
-    "version": "4.5.0",
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "magento/composer-dependency-version-audit-plugin": true,
+            "magento/magento-composer-installer": true
+        }
+    },
+    "version": "4.6.1-p1",
     "require": {
-        "php": "~7.4.0||~8.1.0||~8.2.0",
+        "php": "~8.1.0||~8.2.0||~8.3.0",
         "magento/framework": "*",
-        "braintree/braintree_php": "6.11.1",
+        "braintree/braintree_php": "6.13.0",
         "magento/module-customer": "101.0.*||102.0.*||^103.0.0",
         "magento/module-config": "101.0.*||101.1.*||^101.2.0",
         "magento/module-sales": "101.0.*||102.0.*||^102.1.0||^103",
@@ -40,7 +47,8 @@
         "magento/module-re-captcha-webapi-ui": "1.0.*",
         "magento/module-re-captcha-version-2-checkbox": "2.0.*",
         "magento/module-re-captcha-version-3-invisible": "2.0.*",
-        "magento/module-re-captcha-version-2-invisible": "2.0.*"
+        "magento/module-re-captcha-version-2-invisible": "2.0.*",
+        "magento/module-quote-graph-ql": "^100"
     },
     "autoload": {
         "files": [
@@ -50,9 +58,18 @@
             "PayPal\\Braintree\\": ""
         }
     },
+    "require-dev": {
+        "magento/magento-coding-standard": "^32.0"
+    },
     "conflict": {
         "magento/module-braintree": "*",
         "gene/module-braintree": "*"
-    }
+    },
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://repo.magento.com/"
+        }
+    ]
 }
 

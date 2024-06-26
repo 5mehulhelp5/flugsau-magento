@@ -18,54 +18,55 @@ define([
         },
 
         /**
-         * @param token
-         * @param currency
-         * @param env
-         * @param local
+         * Initialize button
+         *
+         * @param payPalConfig
          */
-        init: function (token, currency, env, local) {
+        init: function (buttonConfig) {
             buttonIds = [];
             $('.action-braintree-paypal-logo').each(function () {
-                if (!$(this).hasClass("button-loaded")) {
+                if (!$(this).hasClass('button-loaded')) {
                     $(this).addClass('button-loaded');
                     buttonIds.push($(this).attr('id'));
                 }
             });
 
             if (buttonIds.length > 0) {
-                this.loadSDK(token, currency, env, local);
+                this.loadSDK(buttonConfig);
             }
         },
 
         /**
          * Load Braintree PayPal SDK
-         * @param token
-         * @param currency
-         * @param env
-         * @param local
+         * @param buttonConfig
          */
-        loadSDK: function (token, currency, env, local) {
+        loadSDK: function (buttonConfig) {
             braintree.create({
-                authorization: token
+                authorization: buttonConfig.clientToken
             }, function (clientErr, clientInstance) {
                 if (clientErr) {
                     console.error('paypalCheckout error', clientErr);
-                    return this.showError("PayPal Checkout could not be initialized. Please contact the store owner.");
+                    return this.showError('PayPal Checkout could not be initialized. Please contact the store owner.');
                 }
                 paypalCheckout.create({
                     client: clientInstance
                 }, function (err, paypalCheckoutInstance) {
-                    if (typeof paypal !== 'undefined' ) {
+                    if (typeof paypal !== 'undefined') {
                         this.renderPayPalButtons(buttonIds);
                         this.renderPayPalMessages();
                     } else {
-                        var configSDK = {
-                            components: 'buttons,messages,funding-eligibility',
-                            "enable-funding": "paylater",
-                            currency: currency
-                        };
-                        if (env === 'sandbox' && (local !== '' || local !== 'undefined')) {
-                            configSDK["buyer-country"] = local;
+                        let configSDK = {
+                                components: 'buttons,messages,funding-eligibility',
+                                'enable-funding': this.isCreditActive(buttonConfig) ? 'credit' : 'paylater',
+                                currency: buttonConfig.currency
+                            },
+
+                            buyerCountry = this.getMerchantCountry(buttonConfig);
+
+                        if (buttonConfig.environment === 'sandbox'
+                            && (buyerCountry !== '' || buyerCountry !== 'undefined'))
+                        {
+                            configSDK['buyer-country'] = buyerCountry;
                         }
                         paypalCheckoutInstance.loadPayPalSDK(configSDK, function () {
                             this.renderPayPalButtons(buttonIds);
@@ -74,6 +75,26 @@ define([
                     }
                 }.bind(this));
             }.bind(this));
+        },
+
+        /**
+         * Is Credit enabled
+         *
+         * @param buttonConfig
+         * @returns {boolean}
+         */
+        isCreditActive: function (buttonConfig) {
+            return buttonConfig.isCreditActive;
+        },
+
+        /**
+         * Get merchant country
+         *
+         * @param buttonConfig
+         * @returns {string}
+         */
+        getMerchantCountry: function (buttonConfig) {
+            return buttonConfig.merchantCountry;
         },
 
         /**
@@ -91,7 +112,7 @@ define([
          */
         renderPayPalMessages: function () {
             $('.action-braintree-paypal-message').each(function () {
-                let messages = paypal.Messages({
+                let messages = window.paypal.Messages({
                     amount: $(this).data('pp-amount'),
                     pageType: $(this).data('pp-type'),
                     style: {
@@ -116,35 +137,32 @@ define([
          * @param id
          */
         payPalButton: function (id) {
-            let data = $('#' + id);
-            let style = {
-                color: data.data('color'),
-                shape: data.data('shape'),
-                size: data.data('size'),
-                label: data.data('label')
-            };
+            let buttonElement = $('#' + id),
+                fundingicons = buttonElement.data('fundingicons'),
+                style = {
+                    label: buttonElement.data('label'),
+                    color: buttonElement.data('color'),
+                    shape: buttonElement.data('shape'),
+                    fundingicons: fundingicons || ''
+                },
 
-            if (data.data('fundingicons')) {
-                style.fundingicons = data.data('fundingicons');
-            }
+                button = window.paypal.Buttons({
+                    fundingSource: buttonElement.data('funding'),
+                    style: style,
 
-            // Render
-            var button = paypal.Buttons({
-                fundingSource: data.data('funding'),
-                style: style,
+                    onInit: function (data, actions) {
+                        actions.disable();
+                    }
+                });
 
-                onInit: function (data, actions) {
-                    actions.disable();
-                }
-            });
             if (!button.isEligible()) {
-                console.log('PayPal button is not elligible');
-                data.parent().remove();
+                console.log('PayPal button is not eligible');
+                buttonElement.parent().remove();
                 return;
             }
-            if ($('#' + data.attr('id')).length && data.data('show')) {
-                button.render('#' + data.attr('id'));
+            if ($('#' + buttonElement.attr('id')).length && buttonElement.data('show')) {
+                button.render('#' + buttonElement.attr('id'));
             }
-        },
-    }
+        }
+    };
 });

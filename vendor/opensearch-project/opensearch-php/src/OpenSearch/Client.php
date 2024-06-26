@@ -22,30 +22,26 @@ declare(strict_types=1);
 namespace OpenSearch;
 
 use OpenSearch\Common\Exceptions\BadMethodCallException;
-use OpenSearch\Common\Exceptions\InvalidArgumentException;
 use OpenSearch\Common\Exceptions\NoNodesAvailableException;
-use OpenSearch\Common\Exceptions\BadRequest400Exception;
-use OpenSearch\Common\Exceptions\Missing404Exception;
-use OpenSearch\Common\Exceptions\TransportException;
 use OpenSearch\Endpoints\AbstractEndpoint;
-use OpenSearch\Namespaces\AbstractNamespace;
-use OpenSearch\Namespaces\NamespaceBuilderInterface;
+use OpenSearch\Namespaces\AsyncSearchNamespace;
 use OpenSearch\Namespaces\BooleanRequestWrapper;
 use OpenSearch\Namespaces\CatNamespace;
 use OpenSearch\Namespaces\ClusterNamespace;
 use OpenSearch\Namespaces\DanglingIndicesNamespace;
+use OpenSearch\Namespaces\DataFrameTransformDeprecatedNamespace;
 use OpenSearch\Namespaces\IndicesNamespace;
 use OpenSearch\Namespaces\IngestNamespace;
+use OpenSearch\Namespaces\MachineLearningNamespace;
+use OpenSearch\Namespaces\MonitoringNamespace;
+use OpenSearch\Namespaces\NamespaceBuilderInterface;
 use OpenSearch\Namespaces\NodesNamespace;
+use OpenSearch\Namespaces\SearchableSnapshotsNamespace;
 use OpenSearch\Namespaces\SecurityNamespace;
 use OpenSearch\Namespaces\SnapshotNamespace;
 use OpenSearch\Namespaces\SqlNamespace;
-use OpenSearch\Namespaces\TasksNamespace;
-use OpenSearch\Namespaces\AsyncSearchNamespace;
-use OpenSearch\Namespaces\DataFrameTransformDeprecatedNamespace;
-use OpenSearch\Namespaces\MonitoringNamespace;
-use OpenSearch\Namespaces\SearchableSnapshotsNamespace;
 use OpenSearch\Namespaces\SslNamespace;
+use OpenSearch\Namespaces\TasksNamespace;
 
 /**
  * Class Client
@@ -53,7 +49,10 @@ use OpenSearch\Namespaces\SslNamespace;
  */
 class Client
 {
-    public const VERSION = '2.0.0';
+    /**
+     * @deprecated since version is pulled from InstalledVersions::getVersion('opensearch-project/opensearch-php')
+     */
+    public const VERSION = '2.3.0';
 
     /**
      * @var Transport
@@ -151,11 +150,16 @@ class Client
     protected $sql;
 
     /**
+     * @var MachineLearningNamespace
+     */
+    protected $ml;
+
+    /**
      * Client constructor
      *
-     * @param Transport           $transport
-     * @param callable            $endpoint
-     * @param AbstractNamespace[] $registeredNamespaces
+     * @param Transport                   $transport
+     * @param callable                    $endpoint
+     * @param NamespaceBuilderInterface[] $registeredNamespaces
      */
     public function __construct(Transport $transport, callable $endpoint, array $registeredNamespaces)
     {
@@ -176,6 +180,7 @@ class Client
         $this->security = new SecurityNamespace($transport, $endpoint);
         $this->ssl = new SslNamespace($transport, $endpoint);
         $this->sql = new SqlNamespace($transport, $endpoint);
+        $this->ml = new MachineLearningNamespace($transport, $endpoint);
 
         $this->registeredNamespaces = $registeredNamespaces;
     }
@@ -395,7 +400,7 @@ class Client
     /**
      * $params['id']             = (string) Script ID
      * $params['timeout']        = (time) Explicit operation timeout
-     * $params['master_timeout'] = (time) Specify timeout for connection to master
+     * $params['cluster_manager_timeout'] = (time) Specify timeout for connection to cluster_manager
      *
      * @param array $params Associative array of parameters
      * @return array
@@ -568,7 +573,7 @@ class Client
     }
     /**
      * $params['id']             = (string) Script ID
-     * $params['master_timeout'] = (time) Specify timeout for connection to master
+     * $params['cluster_manager_timeout'] = (time) Specify timeout for connection to cluster_manager
      *
      * @param array $params Associative array of parameters
      * @return array
@@ -827,7 +832,7 @@ class Client
      * $params['id']             = (string) Script ID (Required)
      * $params['context']        = (string) Script context
      * $params['timeout']        = (time) Explicit operation timeout
-     * $params['master_timeout'] = (time) Specify timeout for connection to master
+     * $params['cluster_manager_timeout'] = (time) Specify timeout for connection to cluster_manager
      * $params['body']           = (array) The document (Required)
      *
      * @param array $params Associative array of parameters
@@ -1048,7 +1053,7 @@ class Client
      * $params['index']              = (list) A comma-separated list of index names to search; use `_all` or empty string to perform the operation on all indices
      * $params['preference']         = (string) Specify the node or shard the operation should be performed on (default: random)
      * $params['routing']            = (string) Specific routing value
-     * $params['local']              = (boolean) Return local information, do not retrieve the state from master node (default: false)
+     * $params['local']              = (boolean) Return local information, do not retrieve the state from cluster manager node (default: false)
      * $params['ignore_unavailable'] = (boolean) Whether specified concrete indices should be ignored when unavailable (missing or closed)
      * $params['allow_no_indices']   = (boolean) Whether to ignore if a wildcard indices expression resolves into no concrete indices. (This includes `_all` string or when no indices have been specified)
      * $params['expand_wildcards']   = (enum) Whether to expand wildcard expression to concrete indices that are open, closed or both. (Options = open,closed,hidden,none,all) (Default = open)
@@ -1243,17 +1248,17 @@ class Client
         return $this->performRequest($endpoint);
     }
     /**
-     * $params['body'] = (array) a point-in-time id to close
+     * $params['body'] = (array) a point-in-time id to delete
      *
      * @param array $params Associative array of parameters
      * @return array
      */
-    public function closePointInTime(array $params = [])
+    public function deletePointInTime(array $params = [])
     {
         $body = $this->extractArgument($params, 'body');
 
         $endpointBuilder = $this->endpoints;
-        $endpoint = $endpointBuilder('ClosePointInTime');
+        $endpoint = $endpointBuilder('DeletePointInTime');
         $endpoint->setParams($params);
         $endpoint->setBody($body);
 
@@ -1270,12 +1275,12 @@ class Client
      * @param array $params Associative array of parameters
      * @return array
      */
-    public function openPointInTime(array $params = [])
+    public function createPointInTime(array $params = [])
     {
         $index = $this->extractArgument($params, 'index');
 
         $endpointBuilder = $this->endpoints;
-        $endpoint = $endpointBuilder('OpenPointInTime');
+        $endpoint = $endpointBuilder('CreatePointInTime');
         $endpoint->setParams($params);
         $endpoint->setIndex($index);
 
@@ -1345,6 +1350,11 @@ class Client
         return $this->sql;
     }
 
+    public function ml(): MachineLearningNamespace
+    {
+        return $this->ml;
+    }
+
     /**
      * Catchall for registered namespaces
      *
@@ -1374,6 +1384,22 @@ class Client
         } else {
             return null;
         }
+    }
+
+    /**
+     * Sends a raw request to the cluster
+     * @return callable|array
+     * @throws NoNodesAvailableException
+     */
+    public function request(string $method, string $uri, array $attributes = [])
+    {
+        $params = $attributes['params'] ?? [];
+        $body = $attributes['body'] ?? null;
+        $options = $attributes['options'] ?? [];
+
+        $promise = $this->transport->performRequest($method, $uri, $params, $body, $options);
+
+        return $this->transport->resultOrFuture($promise, $options);
     }
 
     /**

@@ -1,4 +1,9 @@
 <?php
+/**
+ * Copyright © Magento, Inc. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+declare(strict_types=1);
 
 namespace PayPal\Braintree\Block\Credit\Calculator;
 
@@ -14,7 +19,7 @@ class Cart extends Template
     /**
      * @var PayPalCreditConfig $config
      */
-    protected $config;
+    protected PayPalCreditConfig $config;
 
     /**
      * Product constructor
@@ -45,6 +50,8 @@ class Cart extends Template
     }
 
     /**
+     * Get merchant name
+     *
      * @return string
      */
     public function getMerchantName(): string

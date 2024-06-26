@@ -2,6 +2,8 @@
 
 namespace Laminas\Validator\File;
 
+use Psr\Http\Message\UploadedFileInterface;
+
 use function array_merge;
 use function class_exists;
 use function explode;
@@ -15,6 +17,8 @@ use const FILEINFO_MIME_TYPE;
 
 /**
  * Validator for the mime type of a file
+ *
+ * @final
  */
 class ExcludeMimeType extends MimeType
 {
@@ -36,8 +40,8 @@ class ExcludeMimeType extends MimeType
      * of mimetypes can be checked. If you give for example "image" all image
      * mime types will not be accepted like "image/gif", "image/jpeg" and so on.
      *
-     * @param  string|array $value Real file to check for mimetype
-     * @param  array        $file  File data from \Laminas\File\Transfer\Transfer (optional)
+     * @param  string|array|UploadedFileInterface $value Real file to check for mimetype
+     * @param  array                              $file  File data from \Laminas\File\Transfer\Transfer (optional)
      * @return bool
      */
     public function isValid($value, $file = null)

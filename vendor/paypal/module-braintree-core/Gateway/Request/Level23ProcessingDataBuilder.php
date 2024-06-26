@@ -10,12 +10,11 @@ namespace PayPal\Braintree\Gateway\Request;
 use Braintree\TransactionLineItem;
 use Magento\Directory\Model\Country;
 use Magento\Framework\App\Config\ScopeConfigInterface;
-use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Payment\Gateway\Request\BuilderInterface;
-use Magento\Quote\Model\QuoteRepository;
 use Magento\Sales\Api\Data\OrderPaymentInterface;
 use Magento\Store\Model\ScopeInterface;
 use PayPal\Braintree\Gateway\Config\Config;
+use PayPal\Braintree\Gateway\Config\PayPal\Config as PayPalConfig;
 use PayPal\Braintree\Gateway\Data\Order\OrderAdapter;
 use PayPal\Braintree\Gateway\Helper\SubjectReader;
 
@@ -28,7 +27,7 @@ class Level23ProcessingDataBuilder implements BuilderInterface
     private const KEY_SHIPS_FROM_POSTAL_CODE = 'shipsFromPostalCode';
     private const KEY_SHIPPING = 'shipping';
     private const KEY_COUNTRY_CODE_ALPHA_3 = 'countryCodeAlpha3';
-    private const KEY_LINE_ITEMS = 'lineItems';
+    public const KEY_LINE_ITEMS = 'lineItems';
     private const LINE_ITEMS_ARRAY = [
         'name',
         'kind',
@@ -64,9 +63,9 @@ class Level23ProcessingDataBuilder implements BuilderInterface
     private Config $braintreeConfig;
 
     /**
-     * @var quoteRepository
+     * @var PayPalConfig
      */
-    private QuoteRepository $quoteRepository;
+    private PayPalConfig $payPalConfig;
 
     /**
      * Level23ProcessingDataBuilder constructor.
@@ -75,20 +74,20 @@ class Level23ProcessingDataBuilder implements BuilderInterface
      * @param ScopeConfigInterface $scopeConfig
      * @param Country $country
      * @param Config $braintreeConfig
-     * @param QuoteRepository $quoteRepository
+     * @param PayPalConfig $payPalConfig
      */
     public function __construct(
         SubjectReader $subjectReader,
         ScopeConfigInterface $scopeConfig,
         Country $country,
         Config $braintreeConfig,
-        QuoteRepository $quoteRepository
+        PayPalConfig $payPalConfig
     ) {
         $this->subjectReader = $subjectReader;
         $this->scopeConfig = $scopeConfig;
         $this->country = $country;
         $this->braintreeConfig = $braintreeConfig;
-        $this->quoteRepository = $quoteRepository;
+        $this->payPalConfig = $payPalConfig;
     }
 
     /**
@@ -96,7 +95,9 @@ class Level23ProcessingDataBuilder implements BuilderInterface
      *
      * @param array $buildSubject
      * @return array
-     * @throws NoSuchEntityException
+     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings(PHPMD.NPathComplexity)
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
      */
     public function build(array $buildSubject): array
     {
@@ -114,56 +115,68 @@ class Level23ProcessingDataBuilder implements BuilderInterface
          */
         $order = $paymentDO->getOrder();
 
-        foreach ($order->getItems() as $item) {
+        $ppSendCartLineItems = $this->payPalConfig->canSendCartLineItemsForPayPal();
+        $btSendLineItems = $this->braintreeConfig->canSendLineItems();
+        $isPayPalMethod = $payment->getMethod() === 'braintree_paypal'
+            || $payment->getMethod() === 'braintree_paypal_vault';
 
-            // Skip configurable parent items and items with a base price of 0.
-            if ($item->getParentItem() || 0.0 === $item->getPrice()) {
-                continue;
-            }
+        if (($ppSendCartLineItems && $isPayPalMethod) || ($btSendLineItems && !$isPayPalMethod)) {
+            foreach ($order->getItems() as $item) {
 
-            // Regex to replace all unsupported characters.
-            $filteredFields = preg_replace(
-                '/[^a-zA-Z0-9\s\-.\']/',
-                '',
-                [
-                    'name' => substr($item->getName(), 0, 35),
-                    'unit_of_measure' => substr($item->getProductType(), 0, 12),
-                    'sku' => substr($item->getSku(), 0, 12)
-                ]
-            );
-
-            $description = '';
-            $itemQuantity = (float) $item->getQtyOrdered();
-            $itemUnitPrice = (float) $item->getPrice();
-
-            if (($payment->getMethod() === 'braintree_paypal' || $payment->getMethod() === 'braintree_paypal_vault')) {
-                if ($itemQuantity > floor($itemQuantity) && $itemQuantity < ceil($itemQuantity)) {
-                    $description = 'Item quantity is ' . $this->numberToString($itemQuantity, 2) . ' and per unit amount is ' . $this->numberToString($itemUnitPrice, 2);
-                    $itemUnitPrice = (float) $itemQuantity * $itemUnitPrice;
-                    $itemQuantity = 1.00;
+                // Skip configurable parent items and items with a base price of 0.
+                if ($item->getParentItem() || 0.0 === $item->getPrice()) {
+                    continue;
                 }
-            }
 
-            $lineItems[] = array_combine(
-                self::LINE_ITEMS_ARRAY,
-                [
-                    $filteredFields['name'],
-                    TransactionLineItem::DEBIT,
-                    $this->numberToString($itemQuantity, 2),
-                    $this->numberToString($itemUnitPrice, 2),
-                    $filteredFields['unit_of_measure'],
-                    $this->numberToString((float) $item->getQtyOrdered() * $item->getPrice(), 2),
-                    $item->getTaxAmount() === null ? '0.00' : $this->numberToString($item->getTaxAmount(), 2),
-                    $item->getDiscountAmount() === null ? '0.00' : $this->numberToString($item->getDiscountAmount(), 2),
-                    $filteredFields['sku'],
-                    $filteredFields['sku'],
-                    $description
-                ]
-            );
+                // Regex to replace all unsupported characters.
+                $filteredFields = preg_replace(
+                    '/[^a-zA-Z0-9\s\-.\']/',
+                    '',
+                    [
+                        'name' => substr($item->getName(), 0, 35),
+                        'unit_of_measure' => substr($item->getProductType(), 0, 12),
+                        'sku' => substr($item->getSku(), 0, 12)
+                    ]
+                );
+
+                $description = '';
+                $itemQuantity = (float)$item->getQtyOrdered();
+                $itemUnitPrice = (float)$item->getPrice();
+
+                if ($isPayPalMethod) {
+                    if ($itemQuantity > floor($itemQuantity) && $itemQuantity < ceil($itemQuantity)) {
+                        $description = 'Item quantity is ' .
+                            $this->numberToString($itemQuantity, 2) .
+                            ' and per unit amount is ' . $this->numberToString($itemUnitPrice, 2);
+                        $itemUnitPrice = $itemQuantity * $itemUnitPrice;
+                        $itemQuantity = 1.00;
+                    }
+                }
+
+                $lineItems[] = array_combine(
+                    self::LINE_ITEMS_ARRAY,
+                    [
+                        $filteredFields['name'],
+                        TransactionLineItem::DEBIT,
+                        $this->numberToString($itemQuantity, 2),
+                        $this->numberToString($itemUnitPrice, 2),
+                        $filteredFields['unit_of_measure'],
+                        $this->numberToString((float)$item->getQtyOrdered() * $item->getPrice(), 2),
+                        $item->getTaxAmount() === null ? '0.00' : $this->numberToString($item->getTaxAmount(), 2),
+                        $item->getDiscountAmount() === null ? '0.00' : $this->numberToString(
+                            $item->getDiscountAmount(),
+                            2
+                        ),
+                        $filteredFields['sku'],
+                        $filteredFields['sku'],
+                        $description
+                    ]
+                );
+            }
         }
 
         $baseDiscountAmount = $this->numberToString(abs($order->getBaseDiscountAmount()), 2);
-        if (($payment->getMethod() === 'braintree_paypal' || $payment->getMethod() === 'braintree_paypal_vault')) {
+        if ($isPayPalMethod) {
             /**
              * Adds credit (refund or discount) kind as LineItems for the
              * PayPal transaction if discount amount is greater than 0(Zero)
@@ -182,89 +195,6 @@ class Level23ProcessingDataBuilder implements BuilderInterface
 
                 $lineItems = array_merge($lineItems, $discountLineItems);
             }
-
-            /** Get Order Extension Attributes */
-            $extensionAttributes = $order->getExtensionAttributes();
-            $gwBasePrice = $this->numberToString($extensionAttributes->getGwBasePrice(), 2);
-            $gwItemsBasePrice = $this->numberToString($extensionAttributes->getGwItemsBasePrice(), 2);
-
-            /** Get customer balance amount and gift cards amount from quote */
-            $quote = $this->quoteRepository->get($order->getQuoteId());
-            $baseCustomerBalAmountUsed = $this->numberToString(abs((float)$quote->getBaseCustomerBalAmountUsed()), 2);
-            $baseGiftCardsAmountUsed = $this->numberToString(abs((float)$quote->getBaseGiftCardsAmountUsed()), 2);
-
-            /**
-             * Adds Gift Wrapping for Order as LineItems for the PayPal
-             * transaction if it is greater than 0(Zero) to manage
-             * the totals with server-side implementation as there is
-             * no any field exist to send that amount to the Braintree.
-             */
-            if ($gwBasePrice > 0) {
-                $gwBasePriceItems[] = [
-                    'name' => 'Gift Wrapping for Order',
-                    'kind' => TransactionLineItem::DEBIT,
-                    'quantity' => 1.00,
-                    'unitAmount' => $gwBasePrice,
-                    'totalAmount' => $gwBasePrice
-                ];
-
-                $lineItems = array_merge($lineItems, $gwBasePriceItems);
-            }
-
-            /**
-             * Adds Gift Wrapping for items as LineItems for the PayPal
-             * transaction if it is greater than 0(Zero) to manage
-             * the totals with server-side implementation as there is
-             * no any field exist to send that amount to the Braintree.
-             */
-            if ($gwItemsBasePrice > 0) {
-                $gwItemsBasePriceItems[] = [
-                    'name' => 'Gift Wrapping for Items',
-                    'kind' => TransactionLineItem::DEBIT,
-                    'quantity' => 1.00,
-                    'unitAmount' => $gwItemsBasePrice,
-                    'totalAmount' => $gwItemsBasePrice
-                ];
-
-                $lineItems = array_merge($lineItems, $gwItemsBasePriceItems);
-            }
-
-            /**
-             * Adds Store Credit as credit LineItems for the PayPal
-             * transaction if store credit is greater than 0(Zero)
-             * to manage the totals with server-side implementation
-             * as there is no any field exist to send that amount
-             * to the Braintree.
-             */
-            if ($baseCustomerBalAmountUsed > 0) {
-                $storeCreditItems[] = [
-                    'name' => 'Store Credit',
-                    'kind' => TransactionLineItem::CREDIT,
-                    'quantity' => 1.00,
-                    'unitAmount' => $baseCustomerBalAmountUsed,
-                    'totalAmount' => $baseCustomerBalAmountUsed
-                ];
-
-                $lineItems = array_merge($lineItems, $storeCreditItems);
-            }
-
-            /**
-             * Adds Gift Cards as credit LineItems for the PayPal
-             * transaction if it is greater than 0(Zero) to manage
-             * the totals with server-side implementation as there is
-             * no any field exist to send that amount to the Braintree.
-             */
-            if ($baseGiftCardsAmountUsed > 0) {
-                $giftCardsItems[] = [
-                    'name' => 'Gift Cards',
-                    'kind' => TransactionLineItem::CREDIT,
-                    'quantity' => 1.00,
-                    'unitAmount' => $baseGiftCardsAmountUsed,
-                    'totalAmount' => $baseGiftCardsAmountUsed
-                ];
-
-                $lineItems = array_merge($lineItems, $giftCardsItems);
-            }
         }
 
         $processingData = [
@@ -274,7 +204,11 @@ class Level23ProcessingDataBuilder implements BuilderInterface
         ];
 
         // Can send line items to braintree if enabled and line items are less than 250.
-        if ($this->braintreeConfig->canSendLineItems() && count($lineItems) < 250) {
+        if ($this->braintreeConfig->canSendLineItems() && count($lineItems) < 250 && !$isPayPalMethod) {
+            $processingData[self::KEY_LINE_ITEMS] = $lineItems; // Level 3.
+        }
+        // Can send cart line items to braintree for PayPal if enabled and line items are less than 250.
+        if ($this->payPalConfig->canSendCartLineItemsForPayPal() && count($lineItems) < 250 && $isPayPalMethod) {
             $processingData[self::KEY_LINE_ITEMS] = $lineItems; // Level 3.
         }
 
@@ -301,11 +235,13 @@ class Level23ProcessingDataBuilder implements BuilderInterface
     }
 
     /**
-     * @param float $num
+     * Number to string conversion
+     *
+     * @param float|string $num
      * @param int $precision
      * @return string
      */
-    private function numberToString($num, int $precision): string
+    public function numberToString(float|string $num, int $precision): string
     {
         // To counter the fact that Magento often wrongly returns a sting for price values, we can cast it to a float.
         if (is_string($num)) {

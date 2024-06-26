@@ -33,7 +33,7 @@ class SyncPromiseAdapter implements PromiseAdapter
     }
 
     /** @throws InvariantViolation */
-    public function then(Promise $promise, callable $onFulfilled = null, callable $onRejected = null): Promise
+    public function then(Promise $promise, ?callable $onFulfilled = null, ?callable $onRejected = null): Promise
     {
         $adoptedPromise = $promise->adoptedPromise;
         \assert($adoptedPromise instanceof SyncPromise);
@@ -83,7 +83,10 @@ class SyncPromiseAdapter implements PromiseAdapter
         return new Promise($promise->reject($reason), $this);
     }
 
-    /** @throws InvariantViolation */
+    /**
+     * @throws \Exception
+     * @throws InvariantViolation
+     */
     public function all(iterable $promisesOrValues): Promise
     {
         $all = new SyncPromise();

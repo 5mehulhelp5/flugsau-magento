@@ -25,37 +25,37 @@ class ConfigProvider implements ConfigProviderInterface
     /**
      * @var PayPalConfig
      */
-    private $paypalConfig;
+    private PayPalConfig $paypalConfig;
 
     /**
      * @var Config
      */
-    private $config;
+    private Config $config;
 
     /**
      * @var BraintreeAdapter
      */
-    private $adapter;
+    private BraintreeAdapter $adapter;
 
     /**
      * @var string
      */
-    private $clientToken = '';
+    private string $clientToken = '';
 
     /**
      * @var CcConfig
      */
-    private $ccConfig;
+    private CcConfig $ccConfig;
 
     /**
      * @var Source
      */
-    private $assetSource;
+    private Source $assetSource;
 
     /**
      * @var array
      */
-    private $icons = [];
+    private array $icons = [];
 
     /**
      * ConfigProvider constructor.
@@ -88,7 +88,7 @@ class ConfigProvider implements ConfigProviderInterface
             return [];
         }
 
-        $config = [
+        return [
             'payment' => [
                 self::CODE => [
                     'isActive' => $this->config->isActive(),
@@ -102,7 +102,6 @@ class ConfigProvider implements ConfigProviderInterface
                     'ccVaultCode' => self::CC_VAULT_CODE,
                     'style' => [
                         'shape' => $this->paypalConfig->getButtonShape(PayPalConfig::BUTTON_AREA_CHECKOUT),
-                        'size' => $this->paypalConfig->getButtonSize(PayPalConfig::BUTTON_AREA_CHECKOUT),
                         'color' => $this->paypalConfig->getButtonColor(PayPalConfig::BUTTON_AREA_CHECKOUT)
                     ],
                     'disabledFunding' => [
@@ -110,17 +109,9 @@ class ConfigProvider implements ConfigProviderInterface
                         'elv' => $this->paypalConfig->isFundingOptionElvDisabled()
                     ],
                     'icons' => $this->getIcons()
-                ],
-                Config::CODE_3DSECURE => [
-                    'enabled' => $this->config->isVerify3DSecure(),
-                    'challengeRequested' => $this->config->is3DSAlwaysRequested(),
-                    'thresholdAmount' => $this->config->getThresholdAmount(),
-                    'specificCountries' => $this->config->get3DSecureSpecificCountries()
                 ]
             ]
         ];
-
-        return $config;
     }
 
     /**
@@ -166,9 +157,10 @@ class ConfigProvider implements ConfigProviderInterface
                 if ($asset) {
                     $placeholder = $this->assetSource->findSource($asset);
                     if ($placeholder) {
-                        list($width, $height) = getimagesizefromstring($asset->getSourceFile());
+                        [$width, $height] = getimagesize($asset->getSourceFile());
                         $this->icons[$code] = [
                             'url' => $asset->getUrl(),
+                            'alt' => $code,
                             'width' => $width,
                             'height' => $height
                         ];
@@ -178,5 +170,15 @@ class ConfigProvider implements ConfigProviderInterface
         }
 
         return $this->icons;
+    }
+
+    /**
+     * Retrieve CVV tooltip image url
+     *
+     * @return string
+     */
+    public function getCvvImageUrl()
+    {
+        return $this->ccConfig->getCvvImageUrl();
     }
 }

@@ -23,12 +23,12 @@ class Review extends AbstractAction implements HttpGetActionInterface, HttpPostA
     /**
      * @var QuoteUpdater
      */
-    private $quoteUpdater;
+    private QuoteUpdater $quoteUpdater;
 
     /**
      * @var string
      */
-    private static $paymentMethodNonce = 'payment_method_nonce';
+    private static string $paymentMethodNonce = 'payment_method_nonce';
 
     /**
      * @var Json
@@ -74,6 +74,9 @@ class Review extends AbstractAction implements HttpGetActionInterface, HttpPostA
             }
             $this->validateQuote($quote);
 
+            // Allow editing shipping method by default.
+            $quote->setData('may_edit_shipping_method', true);
+
             if ($this->validateRequestData($requestData)) {
                 $this->quoteUpdater->execute(
                     $requestData['nonce'],
@@ -91,7 +94,12 @@ class Review extends AbstractAction implements HttpGetActionInterface, HttpPostA
             $reviewBlock = $resultPage->getLayout()->getBlock('braintree.paypal.review');
 
             $reviewBlock->setQuote($quote);
-            $reviewBlock->getChildBlock('shipping_method')->setData('quote', $quote);
+
+            $shippingMethodBlock = $reviewBlock->getChildBlock('shipping_method');
+
+            if ($shippingMethodBlock) {
+                $shippingMethodBlock->setData('quote', $quote);
+            }
 
             return $resultPage;
         } catch (Exception $e) {

@@ -6,9 +6,9 @@
 
 namespace PayPal\Braintree\Model\Config\Source;
 
-use Magento\Framework\Option\ArrayInterface;
+use Magento\Framework\Data\OptionSourceInterface;
 
-class Color implements ArrayInterface
+class Color implements OptionSourceInterface
 {
     /**
      * Options getter
@@ -18,10 +18,11 @@ class Color implements ArrayInterface
     public function toOptionArray(): array
     {
         return [
-            ['value' => 'blue', 'label' => __('Blue')],
-            ['value' => 'black', 'label' => __('Black')],
             ['value' => 'gold', 'label' => __('Gold')],
-            ['value' => 'silver', 'label' => __('Silver')]
+            ['value' => 'blue', 'label' => __('Blue')],
+            ['value' => 'silver', 'label' => __('Silver')],
+            ['value' => 'white', 'label' => __('White')],
+            ['value' => 'black', 'label' => __('Black')]
         ];
     }
 
@@ -33,10 +34,11 @@ class Color implements ArrayInterface
     public function toArray(): array
     {
         return [
-            'blue' => __('Blue'),
-            'black' => __('Black'),
             'gold' => __('Gold'),
-            'silver' => __('Silver')
+            'blue' => __('Blue'),
+            'silver' => __('Silver'),
+            'white' => __('White'),
+            'black' => __('Black')
         ];
     }
 
@@ -48,10 +50,11 @@ class Color implements ArrayInterface
     public function toRawValues(): array
     {
         return [
-            'blue' => 'blue',
-            'black' => 'black',
             'gold' => 'gold',
-            'silver' => 'silver'
+            'blue' => 'blue',
+            'silver' => 'silver',
+            'white' => 'white',
+            'black' => 'black',
         ];
     }
 }

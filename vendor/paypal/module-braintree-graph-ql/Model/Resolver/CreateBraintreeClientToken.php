@@ -23,12 +23,12 @@ class CreateBraintreeClientToken implements ResolverInterface
     /**
      * @var Config
      */
-    private $config;
+    private Config $config;
 
     /**
      * @var BraintreeAdapterFactory
      */
-    private $adapterFactory;
+    private BraintreeAdapterFactory $adapterFactory;
 
     /**
      * @param Config $config

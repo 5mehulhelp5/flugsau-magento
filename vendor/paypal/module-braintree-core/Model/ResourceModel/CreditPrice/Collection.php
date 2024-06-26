@@ -1,4 +1,9 @@
 <?php
+/**
+ * Copyright © Magento, Inc. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+declare(strict_types=1);
 
 namespace PayPal\Braintree\Model\ResourceModel\CreditPrice;
 
@@ -13,7 +18,12 @@ class Collection extends AbstractCollection
      */
     protected $_idFieldName = 'id'; //@codingStandardsIgnoreLine
 
-    protected function _construct() //@codingStandardsIgnoreLine
+    /**
+     * Initialize resource collection
+     *
+     * @return void
+     */
+    protected function _construct(): void //@codingStandardsIgnoreLine
     {
         $this->_init(CreditPrice::class, CreditPriceResource::class);
     }

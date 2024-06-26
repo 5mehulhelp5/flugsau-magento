@@ -16,6 +16,7 @@
             <description value="Test verifies the process of deleting product image"/>
             <severity value="MAJOR"/>
             <testCaseId value="AC-4473"/>
+            <group value="cloud"/>
         </annotations>
 
         <before>
@@ -76,7 +77,7 @@
             <!-- Go to the product page on StoreFront and see the Base image -->
             <amOnPage url="{{StorefrontProductPage.url($simpleProductOne.custom_attributes[url_key]$)}}" stepKey="goToProductPage"/>
             <waitForPageLoad stepKey="waitForPageLoad"/>
-            <seeElement selector="{{StorefrontProductMediaSection.imageFile('/adobe-base')}}" stepKey="seeBaseImageOnProductPage"/>
+            <waitForElementVisible selector="{{StorefrontProductMediaSection.imageFile('/adobe-base')}}" stepKey="seeBaseImageOnProductPage"/>
             <!-- Go to the category page and see the Small image -->
             <amOnPage url="{{StorefrontCategoryPage.url($testCategory.custom_attributes[url_key]$)}}" stepKey="goToCategoryPage"/>
             <waitForPageLoad stepKey="waitForPageLoadingToFinish"/>
@@ -84,6 +85,7 @@
         </before>
         <after>
             <deleteData createDataKey="testCategory" stepKey="deleteCategory"/>
+            <actionGroup ref="StorefrontCustomerLogoutActionGroup" stepKey="logoutCustomer" />
             <deleteData createDataKey="simpleProductOne" stepKey="deleteCustomer"/>
         </after>
 

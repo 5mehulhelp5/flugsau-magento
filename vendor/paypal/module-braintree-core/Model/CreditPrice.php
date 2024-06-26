@@ -1,4 +1,9 @@
 <?php
+/**
+ * Copyright © Magento, Inc. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+declare(strict_types=1);
 
 namespace PayPal\Braintree\Model;
 
@@ -10,9 +15,10 @@ class CreditPrice extends AbstractModel implements CreditPriceDataInterface
 {
     /**
      * Initialize resource model
+     *
      * @return void
      */
-    protected function _construct() // @codingStandardsIgnoreLine
+    protected function _construct(): void // @codingStandardsIgnoreLine
     {
         $this->_init(CreditPriceResource::class);
     }

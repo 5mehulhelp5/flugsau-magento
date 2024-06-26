@@ -36,7 +36,7 @@ class Value
      *
      * @throws InvariantViolation
      */
-    public static function coerceInputValue($value, InputType $type, array $path = null): array
+    public static function coerceInputValue($value, InputType $type, ?array $path = null): array
     {
         if ($type instanceof NonNull) {
             if ($value === null) {
@@ -193,7 +193,7 @@ class Value
     }
 
     /**
-     * @param array<int, CoercionError>       $errors
+     * @param array<int, CoercionError> $errors
      * @param CoercionError|array<int, CoercionError> $errorOrErrors
      *
      * @return array<int, CoercionError>

@@ -27,7 +27,7 @@ define(
                 actionSuccess: null,
                 grandTotalAmount: 0,
                 isLoggedIn: false,
-                storeCode: "default"
+                storeCode: 'default'
             },
 
             /**
@@ -39,7 +39,8 @@ define(
                     this.displayName = $t('Store');
                 }
 
-                var api = new buttonApi();
+                let api = new buttonApi();
+
                 api.setGrandTotalAmount(parseFloat(this.grandTotalAmount).toFixed(2));
                 api.setClientToken(this.clientToken);
                 api.setDisplayName(this.displayName);

@@ -6,14 +6,12 @@ define(
         'uiComponent',
         'PayPal_Braintree/js/googlepay/button',
         'PayPal_Braintree/js/googlepay/api',
-        'mage/translate',
         'domReady!'
     ],
     function (
         Component,
         button,
-        buttonApi,
-        $t
+        buttonApi
     ) {
         'use strict';
 
@@ -26,9 +24,10 @@ define(
                 currencyCode: null,
                 actionSuccess: null,
                 amount: null,
-                environment: "TEST",
+                environment: 'TEST',
                 cardType: [],
-                btnColor: 0
+                btnColor: 0,
+                threeDSecure: null
             },
 
             /**
@@ -37,15 +36,21 @@ define(
             initialize: function () {
                 this._super();
 
-                var api = new buttonApi();
+                /* Add client token & environment to 3DS Config */
+                this.threeDSecure.clientToken = this.clientToken;
+                this.threeDSecure.environment = this.environment;
+
+                let api = new buttonApi();
+
                 api.setEnvironment(this.environment);
                 api.setCurrencyCode(this.currencyCode);
                 api.setClientToken(this.clientToken);
                 api.setMerchantId(this.merchantId);
                 api.setActionSuccess(this.actionSuccess);
                 api.setAmount(this.amount);
-                api.setCardTypes(this.cardTypes)
+                api.setCardTypes(this.cardTypes);
                 api.setBtnColor(this.btnColor);
+                api.setThreeDSecureValidatorConfig(this.threeDSecure);
 
                 // Attach the button
                 button.init(

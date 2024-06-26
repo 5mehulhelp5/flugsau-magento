@@ -8,20 +8,27 @@ declare(strict_types=1);
 
 namespace PayPal\Braintree\Block\Adminhtml\System\Config;
 
+use Braintree\Result\Error;
+use Braintree\Result\Successful;
+use Magento\Config\Block\System\Config\Form\Field;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Model\ScopeInterface;
 use PayPal\Braintree\Gateway\Config\PayPal\Config;
 use PayPal\Braintree\Model\Ui\ConfigProvider;
 use Magento\Framework\Exception\InputException;
 use Magento\Framework\Exception\NoSuchEntityException;
-use Magento\Framework\Locale\ResolverInterface;
 use Magento\Backend\Block\Template\Context;
 use PayPal\Braintree\Gateway\Config\Config as BraintreeConfig;
 use PayPal\Braintree\Gateway\Config\PayPalCredit\Config as PayPalCreditConfig;
 use PayPal\Braintree\Gateway\Config\PayPalPayLater\Config as PayPalPayLaterConfig;
 use Magento\Framework\Data\Form\Element\AbstractElement;
 
-class Preview extends \Magento\Config\Block\System\Config\Form\Field
+/**
+ * PayPal buttons preview block
+ *
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
+class Preview extends Field
 {
     /**
      * @var string
@@ -29,39 +36,34 @@ class Preview extends \Magento\Config\Block\System\Config\Form\Field
     protected $_template = 'PayPal_Braintree::system/config/preview.phtml';
 
     /**
-     * @var ResolverInterface $localeResolver
-     */
-    private $localeResolver;
-
-    /**
      * @var Config $config
      */
-    protected $config;
+    protected Config $config;
 
     /**
      * @var BraintreeConfig $braintreeConfig
      */
-    private $braintreeConfig;
+    private BraintreeConfig $braintreeConfig;
 
     /**
      * @var ConfigProvider $configProvider
      */
-    private $configProvider;
+    private ConfigProvider $configProvider;
 
     /**
      * @var PayPalCreditConfig $payPalCreditConfig
      */
-    private $payPalCreditConfig;
+    private PayPalCreditConfig $payPalCreditConfig;
 
     /**
      * @var PayPalPayLaterConfig $payPalPayLaterConfig
      */
-    private $payPalPayLaterConfig;
+    private PayPalPayLaterConfig $payPalPayLaterConfig;
 
     /**
      * Preview constructor.
+     *
      * @param Context $context
-     * @param ResolverInterface $localeResolver
      * @param Config $config
      * @param PayPalCreditConfig $payPalCreditConfig
      * @param PayPalPayLaterConfig $payPalPayLaterConfig
@@ -71,7 +73,6 @@ class Preview extends \Magento\Config\Block\System\Config\Form\Field
      */
     public function __construct(
         Context $context,
-        ResolverInterface $localeResolver,
         Config $config,
         PayPalCreditConfig $payPalCreditConfig,
         PayPalPayLaterConfig $payPalPayLaterConfig,
@@ -80,8 +81,6 @@ class Preview extends \Magento\Config\Block\System\Config\Form\Field
         array $data = []
     ) {
         parent::__construct($context, $data);
-
-        $this->localeResolver = $localeResolver;
         $this->config = $config;
         $this->braintreeConfig = $braintreeConfig;
         $this->configProvider = $configProvider;
@@ -96,7 +95,7 @@ class Preview extends \Magento\Config\Block\System\Config\Form\Field
      * @return string
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    protected function _getElementHtml(AbstractElement $element)
+    protected function _getElementHtml(AbstractElement $element): string
     {
         if ($this->isPayPalActive()) {
             return $this->_toHtml();
@@ -127,10 +126,10 @@ class Preview extends \Magento\Config\Block\System\Config\Form\Field
     /**
      * Get currency code
      *
-     * @return mixed
+     * @return string|null
      * @throws NoSuchEntityException
      */
-    public function getCurrency()
+    public function getCurrency(): ?string
     {
         return $this->_storeManager->getStore()->getBaseCurrencyCode();
     }
@@ -140,9 +139,9 @@ class Preview extends \Magento\Config\Block\System\Config\Form\Field
      *
      * @return float|null
      */
-    public function getAmount()
+    public function getAmount(): ?float
     {
-        return (float) 1000.00;
+        return 1000.00;
     }
 
     /**
@@ -152,7 +151,7 @@ class Preview extends \Magento\Config\Block\System\Config\Form\Field
      */
     public function isPayPalActive(): bool
     {
-        return (bool) $this->config->isActive();
+        return $this->config->isActive();
     }
 
     /**
@@ -162,7 +161,7 @@ class Preview extends \Magento\Config\Block\System\Config\Form\Field
      */
     public function isCreditActive(): bool
     {
-        return (bool) $this->payPalCreditConfig->isActive();
+        return $this->payPalCreditConfig->isActive();
     }
 
     /**
@@ -172,7 +171,7 @@ class Preview extends \Magento\Config\Block\System\Config\Form\Field
      */
     public function isPayLaterActive(): bool
     {
-        return (bool) $this->payPalPayLaterConfig->isActive();
+        return $this->payPalPayLaterConfig->isActive();
     }
 
     /**
@@ -182,19 +181,9 @@ class Preview extends \Magento\Config\Block\System\Config\Form\Field
      * @param string $location
      * @return bool
      */
-    public function showPayPalButton($type, $location): bool
+    public function showPayPalButton(string $type, string $location): bool
     {
-        return (bool) $this->config->showPayPalButton($type, $location);
-    }
-
-    /**
-     * Check PayPal vault active
-     *
-     * @return bool
-     */
-    public function isPayPalVaultActive(): bool
-    {
-        return (bool) $this->payPalPayLaterConfig->isPayPalVaultActive();
+        return $this->config->showPayPalButton($type, $location);
     }
 
     /**
@@ -202,7 +191,7 @@ class Preview extends \Magento\Config\Block\System\Config\Form\Field
      *
      * @return string|null
      */
-    public function getMerchantName()
+    public function getMerchantName(): ?string
     {
         return $this->config->getMerchantName();
     }
@@ -255,6 +244,7 @@ class Preview extends \Magento\Config\Block\System\Config\Form\Field
      * @param string $type
      * @param string $location
      * @return string
+     * @deprecated as Size field is redundant
      */
     public function getButtonSize(string $type, string $location = Config::BUTTON_AREA_CART): string
     {
@@ -288,11 +278,11 @@ class Preview extends \Magento\Config\Block\System\Config\Form\Field
     /**
      * Get client token
      *
-     * @return string|null
+     * @return Error|Successful|string|null
      * @throws InputException
      * @throws NoSuchEntityException
      */
-    public function getClientToken()
+    public function getClientToken(): Error|Successful|string|null
     {
         return $this->configProvider->getClientToken();
     }
@@ -302,7 +292,7 @@ class Preview extends \Magento\Config\Block\System\Config\Form\Field
      *
      * @return string|null
      */
-    public function getMerchantCountry()
+    public function getMerchantCountry(): ?string
     {
         return $this->payPalPayLaterConfig->getMerchantCountry();
     }
@@ -360,7 +350,7 @@ class Preview extends \Magento\Config\Block\System\Config\Form\Field
      *
      * @return array|string
      */
-    public function getScopeType()
+    public function getScopeType(): array|string
     {
         $scopeType = ScopeConfigInterface::SCOPE_TYPE_DEFAULT;
 
@@ -382,7 +372,7 @@ class Preview extends \Magento\Config\Block\System\Config\Form\Field
      * @param mixed $scopeData
      * @return mixed
      */
-    public function getConfigValue(string $location, string $type, string $style, $scopeData)
+    public function getConfigValue(string $location, string $type, string $style, mixed $scopeData): mixed
     {
         if (is_array($scopeData)) {
             $scopeType = $scopeData[0];
@@ -392,11 +382,28 @@ class Preview extends \Magento\Config\Block\System\Config\Form\Field
             $scopeCode = null;
         }
 
-        //phpcs:ignore Generic.Files.LineLength.TooLong
         return $this->_scopeConfig->getValue(
             'payment/braintree_paypal/button_location_' . $location . '_type_' . $type . '_' . $style,
             $scopeType,
             $scopeCode
         );
+    }
+
+    /**
+     * Get button config
+     *
+     * @return array
+     * @throws InputException
+     * @throws NoSuchEntityException
+     */
+    public function getButtonConfig(): array
+    {
+        return [
+            'clientToken' => $this->getClientToken(),
+            'currency' => $this->getCurrency(),
+            'environment' => $this->getEnvironment(),
+            'merchantCountry' => $this->getMerchantCountry(),
+            'isCreditActive' => $this->isCreditActive()
+        ];
     }
 }

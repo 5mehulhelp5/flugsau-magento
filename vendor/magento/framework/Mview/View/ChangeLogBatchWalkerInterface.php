@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * Copyright © Magento, Inc. All rights reserved.
  * See COPYING.txt for license details.
@@ -6,16 +6,11 @@
 
 namespace Magento\Framework\Mview\View;
 
-use Magento\Framework\App\ResourceConnection;
-use Magento\Framework\DB\Sql\Expression;
-use Magento\Framework\Mview\Config;
-use Magento\Framework\Phrase;
-
 /**
- * Interface \Magento\Framework\Mview\View\ChangeLogBatchWalkerInterface
+ * Interface \Magento\Framework\Mview\View\ChangelogBatchWalkerInterface
  *
  */
-interface ChangeLogBatchWalkerInterface
+interface ChangelogBatchWalkerInterface
 {
     /**
      * Walk through batches
@@ -24,7 +19,12 @@ interface ChangeLogBatchWalkerInterface
      * @param int $fromVersionId
      * @param int $lastVersionId
      * @param int $batchSize
-     * @return mixed
+     * @return iterable
      */
-    public function walk(ChangelogInterface $changelog, int $fromVersionId, int $lastVersionId, int $batchSize);
+    public function walk(
+        ChangelogInterface $changelog,
+        int                $fromVersionId,
+        int                $lastVersionId,
+        int                $batchSize
+    ): iterable;
 }

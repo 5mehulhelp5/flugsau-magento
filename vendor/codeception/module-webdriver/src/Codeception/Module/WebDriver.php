@@ -35,11 +35,11 @@ use Codeception\Util\Uri;
 use Exception;
 use Facebook\WebDriver\Cookie;
 use Facebook\WebDriver\Cookie as WebDriverCookie;
+use Facebook\WebDriver\Exception\Internal\UnexpectedResponseException;
 use Facebook\WebDriver\Exception\InvalidElementStateException;
 use Facebook\WebDriver\Exception\InvalidSelectorException;
 use Facebook\WebDriver\Exception\NoSuchElementException;
 use Facebook\WebDriver\Exception\UnknownErrorException;
-use Facebook\WebDriver\Exception\WebDriverCurlException;
 use Facebook\WebDriver\Interactions\WebDriverActions;
 use Facebook\WebDriver\Remote\LocalFileDetector;
 use Facebook\WebDriver\Remote\RemoteWebDriver;
@@ -1367,7 +1367,7 @@ class WebDriver extends CodeceptionModule implements
         return array_filter(
             $nodes,
             function (WebDriverElement $e) use ($expectedUrl, $absoluteCurrentUrl): bool {
-                $elementHref = Uri::mergeUrls($absoluteCurrentUrl, $e->getAttribute('href'));
+                $elementHref = Uri::mergeUrls($absoluteCurrentUrl, $e->getAttribute('href') ?? '');
                 return $elementHref === $expectedUrl;
             }
         );
@@ -1686,7 +1686,7 @@ class WebDriver extends CodeceptionModule implements
 
             $this->setBaseElement();
             $this->initialWindowSize();
-        } catch (WebDriverCurlException $exception) {
+        } catch (UnexpectedResponseException $exception) {
             codecept_debug('Curl error: ' . $exception->getMessage());
             throw new ConnectionException(
                 "Can't connect to WebDriver at {$this->wdHost}."
@@ -3633,7 +3633,7 @@ class WebDriver extends CodeceptionModule implements
      * In 3rd argument you can set number a seconds to wait for element to appear
      *
      * @param string|array|WebDriverBy $element
-     * @param callable|array|ActionSequence $actions
+     * @param callable|array|\Codeception\Util\ActionSequence $actions
      */
     public function performOn($element, $actions, int $timeout = 10): void
     {

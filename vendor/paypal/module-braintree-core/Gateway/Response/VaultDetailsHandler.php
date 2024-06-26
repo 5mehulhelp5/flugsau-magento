@@ -13,6 +13,7 @@ use Exception;
 use Magento\Framework\Exception\InputException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Payment\Gateway\Response\HandlerInterface;
+use Magento\Vault\Api\Data\PaymentTokenFactoryInterface;
 use Magento\Vault\Api\Data\PaymentTokenInterface;
 
 /**
@@ -23,7 +24,7 @@ class VaultDetailsHandler extends Handler implements HandlerInterface
     /**
      * @inheritdoc
      */
-    public function handle(array $handlingSubject, array $response)
+    public function handle(array $handlingSubject, array $response): void
     {
         $paymentDO = $this->subjectReader->readPayment($handlingSubject);
         $transaction = $this->subjectReader->readTransaction($response);
@@ -44,8 +45,9 @@ class VaultDetailsHandler extends Handler implements HandlerInterface
      * @return PaymentTokenInterface|null
      * @throws InputException
      * @throws NoSuchEntityException
+     * @throws Exception
      */
-    protected function getVaultPaymentToken(Transaction $transaction)
+    protected function getVaultPaymentToken(Transaction $transaction): ?PaymentTokenInterface
     {
         // Check token existing in gateway response
         $token = $transaction->creditCardDetails->token;
@@ -53,8 +55,7 @@ class VaultDetailsHandler extends Handler implements HandlerInterface
             return null;
         }
 
-        /** @var PaymentTokenInterface $paymentToken */
-        $paymentToken = $this->paymentTokenFactory->create();
+        $paymentToken = $this->paymentTokenFactory->create(PaymentTokenFactoryInterface::TOKEN_TYPE_CREDIT_CARD);
         $paymentToken->setGatewayToken($token);
         $paymentToken->setExpiresAt($this->getExpirationDate($transaction));
 
@@ -72,7 +73,6 @@ class VaultDetailsHandler extends Handler implements HandlerInterface
      *
      * @param Transaction $transaction
      * @return string
-     * @throws Exception
      * @throws Exception
      */
     private function getExpirationDate(Transaction $transaction): string
@@ -99,7 +99,7 @@ class VaultDetailsHandler extends Handler implements HandlerInterface
      * @throws InputException
      * @throws NoSuchEntityException
      */
-    private function getCreditCardType($type): string
+    private function getCreditCardType(string $type): string
     {
         $replaced = str_replace(' ', '-', strtolower($type));
         $mapper = $this->config->getCcTypesMapper();

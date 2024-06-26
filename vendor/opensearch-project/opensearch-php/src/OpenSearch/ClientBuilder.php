@@ -21,15 +21,22 @@ declare(strict_types=1);
 
 namespace OpenSearch;
 
+use Aws\Credentials\CredentialProvider;
+use Aws\Credentials\Credentials;
+use Aws\Credentials\CredentialsInterface;
 use OpenSearch\Common\Exceptions\InvalidArgumentException;
 use OpenSearch\Common\Exceptions\RuntimeException;
 use OpenSearch\Common\Exceptions\AuthenticationConfigException;
 use OpenSearch\ConnectionPool\AbstractConnectionPool;
 use OpenSearch\ConnectionPool\Selectors\RoundRobinSelector;
+use OpenSearch\ConnectionPool\Selectors\SelectorInterface;
 use OpenSearch\ConnectionPool\StaticNoPingConnectionPool;
 use OpenSearch\Connections\ConnectionFactory;
 use OpenSearch\Connections\ConnectionFactoryInterface;
+use OpenSearch\Connections\ConnectionInterface;
+use OpenSearch\Handlers\SigV4Handler;
 use OpenSearch\Namespaces\NamespaceBuilderInterface;
+use OpenSearch\Serializers\SerializerInterface;
 use OpenSearch\Serializers\SmartSerializer;
 use GuzzleHttp\Ring\Client\CurlHandler;
 use GuzzleHttp\Ring\Client\CurlMultiHandler;
@@ -40,13 +47,15 @@ use ReflectionClass;
 
 class ClientBuilder
 {
+    public const ALLOWED_METHODS_FROM_CONFIG = ['includePortInHostHeader'];
+
     /**
-     * @var Transport
+     * @var Transport|null
      */
     private $transport;
 
     /**
-     * @var callable
+     * @var callable|null
      */
     private $endpoint;
 
@@ -56,37 +65,37 @@ class ClientBuilder
     private $registeredNamespacesBuilders = [];
 
     /**
-     * @var ConnectionFactoryInterface
+     * @var ConnectionFactoryInterface|null
      */
     private $connectionFactory;
 
     /**
-     * @var callable
+     * @var callable|null
      */
     private $handler;
 
     /**
-     * @var LoggerInterface
+     * @var LoggerInterface|null
      */
     private $logger;
 
     /**
-     * @var LoggerInterface
+     * @var LoggerInterface|null
      */
     private $tracer;
 
     /**
-     * @var string
+     * @var string|AbstractConnectionPool
      */
     private $connectionPool = StaticNoPingConnectionPool::class;
 
     /**
-     * @var string
+     * @var string|SerializerInterface|null
      */
     private $serializer = SmartSerializer::class;
 
     /**
-     * @var string
+     * @var string|SelectorInterface|null
      */
     private $selector = RoundRobinSelector::class;
 
@@ -98,7 +107,7 @@ class ClientBuilder
     ];
 
     /**
-     * @var array
+     * @var array|null
      */
     private $hosts;
 
@@ -108,9 +117,24 @@ class ClientBuilder
     private $connectionParams;
 
     /**
-     * @var int
+     * @var int|null
      */
     private $retries;
+
+    /**
+     * @var null|callable
+     */
+    private $sigV4CredentialProvider;
+
+    /**
+     * @var null|string
+     */
+    private $sigV4Region;
+
+    /**
+     * @var null|string
+     */
+    private $sigV4Service;
 
     /**
      * @var bool
@@ -138,15 +162,20 @@ class ClientBuilder
     private $includePortInHostHeader = false;
 
     /**
+     * @var string|null
+     */
+    private $basicAuthentication = null;
+
+    /**
      * Create an instance of ClientBuilder
      */
     public static function create(): ClientBuilder
     {
-        return new static();
+        return new self();
     }
 
     /**
-     * Can supply first parm to Client::__construct() when invoking manually or with dependency injection
+     * Can supply first param to Client::__construct() when invoking manually or with dependency injection
      */
     public function getTransport(): Transport
     {
@@ -154,7 +183,7 @@ class ClientBuilder
     }
 
     /**
-     * Can supply second parm to Client::__construct() when invoking manually or with dependency injection
+     * Can supply second param to Client::__construct() when invoking manually or with dependency injection
      */
     public function getEndpoint(): callable
     {
@@ -162,7 +191,7 @@ class ClientBuilder
     }
 
     /**
-     * Can supply third parm to Client::__construct() when invoking manually or with dependency injection
+     * Can supply third param to Client::__construct() when invoking manually or with dependency injection
      *
      * @return NamespaceBuilderInterface[]
      */
@@ -188,9 +217,9 @@ class ClientBuilder
      */
     public static function fromConfig(array $config, bool $quiet = false): Client
     {
-        $builder = new static();
+        $builder = new self();
         foreach ($config as $key => $value) {
-            $method = "set$key";
+            $method = in_array($key, self::ALLOWED_METHODS_FROM_CONFIG, true) ? $key : "set$key";
             $reflection = new ReflectionClass($builder);
             if ($reflection->hasMethod($method)) {
                 $func = $reflection->getMethod($method);
@@ -403,14 +432,7 @@ class ClientBuilder
      */
     public function setBasicAuthentication(string $username, string $password): ClientBuilder
     {
-        if (isset($this->connectionParams['client']['curl']) === false) {
-            $this->connectionParams['client']['curl'] = [];
-        }
-
-        $this->connectionParams['client']['curl'] += [
-            CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
-            CURLOPT_USERPWD  => $username.':'.$password
-        ];
+        $this->basicAuthentication = $username.':'.$password;
 
         return $this;
     }
@@ -447,6 +469,45 @@ class ClientBuilder
     public function setSelector($selector): ClientBuilder
     {
         $this->parseStringOrObject($selector, $this->selector, 'SelectorInterface');
+
+        return $this;
+    }
+
+    /**
+     * Set the credential provider for SigV4 request signing. The value provider should be a
+     * callable object that will return
+     *
+     * @param callable|bool|array|CredentialsInterface|null $credentialProvider
+     */
+    public function setSigV4CredentialProvider($credentialProvider): ClientBuilder
+    {
+        if ($credentialProvider !== null && $credentialProvider !== false) {
+            $this->sigV4CredentialProvider = $this->normalizeCredentialProvider($credentialProvider);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Set the region for SigV4 signing.
+     *
+     * @param string|null $region
+     */
+    public function setSigV4Region($region): ClientBuilder
+    {
+        $this->sigV4Region = $region;
+
+        return $this;
+    }
+
+    /**
+     * Set the service for SigV4 signing.
+     *
+     * @param string|null $service
+     */
+    public function setSigV4Service($service): ClientBuilder
+    {
+        $this->sigV4Service = $service;
 
         return $this;
     }
@@ -525,6 +586,18 @@ class ClientBuilder
             $this->handler = ClientBuilder::defaultHandler();
         }
 
+        if (!is_null($this->sigV4CredentialProvider)) {
+            if (is_null($this->sigV4Region)) {
+                throw new RuntimeException("A region must be supplied for SigV4 request signing.");
+            }
+
+            if (is_null($this->sigV4Service)) {
+                $this->setSigV4Service("es");
+            }
+
+            $this->handler = new SigV4Handler($this->sigV4Region, $this->sigV4Service, $this->sigV4CredentialProvider, $this->handler);
+        }
+
         $sslOptions = null;
         if (isset($this->sslKey)) {
             $sslOptions['ssl_key'] = $this->sslKey;
@@ -559,30 +632,28 @@ class ClientBuilder
 
         $this->connectionParams['client']['port_in_header'] = $this->includePortInHostHeader;
 
-        if (is_null($this->connectionFactory)) {
-            if (is_null($this->connectionParams)) {
-                $this->connectionParams = [];
+        if (! is_null($this->basicAuthentication)) {
+            if (isset($this->connectionParams['client']['curl']) === false) {
+                $this->connectionParams['client']['curl'] = [];
             }
 
+            $this->connectionParams['client']['curl'] += [
+                CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
+                CURLOPT_USERPWD  => $this->basicAuthentication
+            ];
+        }
+
+        if (is_null($this->connectionFactory)) {
             // Make sure we are setting Content-Type and Accept (unless the user has explicitly
             // overridden it
             if (! isset($this->connectionParams['client']['headers'])) {
                 $this->connectionParams['client']['headers'] = [];
             }
-            $apiVersioning = getenv('ELASTIC_CLIENT_APIVERSIONING');
             if (! isset($this->connectionParams['client']['headers']['Content-Type'])) {
-                if ($apiVersioning === 'true' || $apiVersioning === '1') {
-                    $this->connectionParams['client']['headers']['Content-Type'] = ['application/vnd.elasticsearch+json;compatible-with=7'];
-                } else {
-                    $this->connectionParams['client']['headers']['Content-Type'] = ['application/json'];
-                }
+                $this->connectionParams['client']['headers']['Content-Type'] = ['application/json'];
             }
             if (! isset($this->connectionParams['client']['headers']['Accept'])) {
-                if ($apiVersioning === 'true' || $apiVersioning === '1') {
-                    $this->connectionParams['client']['headers']['Accept'] = ['application/vnd.elasticsearch+json;compatible-with=7'];
-                } else {
-                    $this->connectionParams['client']['headers']['Accept'] = ['application/json'];
-                }
+                $this->connectionParams['client']['headers']['Accept'] = ['application/json'];
             }
 
             $this->connectionFactory = new ConnectionFactory($this->handler, $this->connectionParams, $this->serializer, $this->logger, $this->tracer);
@@ -655,13 +726,6 @@ class ClientBuilder
                 $this->connectionFactory,
                 $this->connectionPoolArgs
             );
-        } elseif (is_null($this->connectionPool)) {
-            $this->connectionPool = new StaticNoPingConnectionPool(
-                $connections,
-                $this->selector,
-                $this->connectionFactory,
-                $this->connectionPoolArgs
-            );
         }
 
         if (is_null($this->retries)) {
@@ -690,7 +754,7 @@ class ClientBuilder
     }
 
     /**
-     * @return \OpenSearch\Connections\Connection[]
+     * @return ConnectionInterface[]
      * @throws RuntimeException
      */
     private function buildConnectionsFromHosts(array $hosts): array
@@ -757,5 +821,39 @@ class ClientBuilder
         }
 
         return $host;
+    }
+
+    private function normalizeCredentialProvider($provider): ?callable
+    {
+        if ($provider === null || $provider === false) {
+            return null;
+        }
+
+        if (is_callable($provider)) {
+            return $provider;
+        }
+
+        SigV4Handler::assertDependenciesInstalled();
+
+        if ($provider === true) {
+            return CredentialProvider::defaultProvider();
+        }
+
+        if ($provider instanceof CredentialsInterface) {
+            return CredentialProvider::fromCredentials($provider);
+        } elseif (is_array($provider) && isset($provider['key']) && isset($provider['secret'])) {
+            return CredentialProvider::fromCredentials(
+                new Credentials(
+                    $provider['key'],
+                    $provider['secret'],
+                    isset($provider['token']) ? $provider['token'] : null,
+                    isset($provider['expires']) ? $provider['expires'] : null
+                )
+            );
+        }
+
+        throw new InvalidArgumentException('Credentials must be an instance of Aws\Credentials\CredentialsInterface, an'
+            . ' associative array that contains "key", "secret", and an optional "token" key-value pairs, a credentials'
+            . ' provider function, or true.');
     }
 }

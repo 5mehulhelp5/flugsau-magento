@@ -1,7 +1,13 @@
 <?php
+/**
+ * Copyright © Magento, Inc. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+declare(strict_types=1);
 
 namespace PayPal\Braintree\Block\GooglePay;
 
+use Magento\Framework\Exception\LocalizedException;
 use PayPal\Braintree\Model\GooglePay\Auth;
 use Magento\Checkout\Model\Session;
 use Magento\Framework\Exception\InputException;
@@ -16,17 +22,17 @@ abstract class AbstractButton extends Template
     /**
      * @var Session
      */
-    protected $checkoutSession;
+    protected Session $checkoutSession;
 
     /**
      * @var MethodInterface
      */
-    protected $payment;
+    protected MethodInterface $payment;
 
     /**
      * @var Auth
      */
-    protected $auth;
+    protected Auth $auth;
 
     /**
      * Button constructor.
@@ -62,7 +68,11 @@ abstract class AbstractButton extends Template
     }
 
     /**
+     * Is method active
+     *
      * @return bool
+     * @throws NoSuchEntityException
+     * @throws LocalizedException
      */
     public function isActive(): bool
     {
@@ -92,13 +102,13 @@ abstract class AbstractButton extends Template
     }
 
     /**
-     * Braintree's API token
+     * Braintree API token
      *
-     * @return string|null
+     * @return string
      * @throws InputException
      * @throws NoSuchEntityException
      */
-    public function getClientToken()
+    public function getClientToken(): string
     {
         return $this->auth->getClientToken();
     }
@@ -116,9 +126,11 @@ abstract class AbstractButton extends Template
     /**
      * Currency code
      *
-     * @return float|null
+     * @return string|null
+     * @throws LocalizedException
+     * @throws NoSuchEntityException
      */
-    public function getCurrencyCode()
+    public function getCurrencyCode(): ?string
     {
         if ($this->checkoutSession->getQuote()->getCurrency()) {
             return $this->checkoutSession->getQuote()->getCurrency()->getBaseCurrencyCode();
@@ -131,6 +143,8 @@ abstract class AbstractButton extends Template
      * Cart grand total
      *
      * @return float|null
+     * @throws LocalizedException
+     * @throws NoSuchEntityException
      */
     public function getAmount()
     {
@@ -140,9 +154,9 @@ abstract class AbstractButton extends Template
     /**
      * Available card types
      *
-     * @return mixed
+     * @return array
      */
-    public function getAvailableCardTypes()
+    public function getAvailableCardTypes(): array
     {
         return $this->auth->getAvailableCardTypes();
     }
@@ -150,10 +164,38 @@ abstract class AbstractButton extends Template
     /**
      * BTN Color
      *
-     * @return mixed
+     * @return int
      */
-    public function getBtnColor()
+    public function getBtnColor(): int
     {
         return $this->auth->getBtnColor();
+    }
+
+    /**
+     * Get an array of the 3DSecure specific data
+     *
+     * @return array
+     * @throws InputException
+     * @throws NoSuchEntityException
+     */
+    public function get3DSecureConfigData(): array
+    {
+        if (!$this->auth->is3DSecureEnabled()) {
+            return [
+                'enabled' => false,
+                'challengeRequested' => false,
+                'thresholdAmount' => 0.0,
+                'specificCountries' => [],
+                'ipAddress' => ''
+            ];
+        }
+
+        return [
+            'enabled' => true,
+            'challengeRequested' => $this->auth->is3DSecureAlwaysRequested(),
+            'thresholdAmount' => $this->auth->get3DSecureThresholdAmount(),
+            'specificCountries' => $this->auth->get3DSecureSpecificCountries(),
+            'ipAddress' => $this->auth->getIpAddress()
+        ];
     }
 }

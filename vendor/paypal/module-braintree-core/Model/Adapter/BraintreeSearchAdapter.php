@@ -5,6 +5,7 @@
  */
 namespace PayPal\Braintree\Model\Adapter;
 
+use Braintree\CustomerSearch;
 use Braintree\MultipleValueNode;
 use Braintree\RangeNode;
 use Braintree\TextNode;
@@ -124,5 +125,35 @@ class BraintreeSearchAdapter
     public function paymentInstrumentType(): MultipleValueNode
     {
         return TransactionSearch::paymentInstrumentType();
+    }
+
+    /**
+     * Customer email search node.
+     *
+     * @return TextNode
+     */
+    public function customerEmail(): TextNode
+    {
+        return CustomerSearch::email();
+    }
+
+    /**
+     * Customer first name search node.
+     *
+     * @return TextNode
+     */
+    public function customerFirstName(): TextNode
+    {
+        return CustomerSearch::firstName();
+    }
+
+    /**
+     * Customer last name search node.
+     *
+     * @return TextNode
+     */
+    public function customerLastName(): TextNode
+    {
+        return CustomerSearch::lastName();
     }
 }

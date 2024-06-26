@@ -6,6 +6,8 @@
 
 namespace PayPal\Braintree\Gateway\Command;
 
+use Magento\Payment\Gateway\Command\Result\ArrayResult;
+use Magento\Payment\Gateway\Command\ResultInterface;
 use PayPal\Braintree\Gateway\Helper\SubjectReader;
 use PayPal\Braintree\Gateway\Validator\PaymentNonceResponseValidator;
 use PayPal\Braintree\Model\Adapter\BraintreeAdapter;
@@ -19,27 +21,27 @@ class GetPaymentNonceCommand implements CommandInterface
     /**
      * @var PaymentTokenManagementInterface
      */
-    private $tokenManagement;
+    private PaymentTokenManagementInterface $tokenManagement;
 
     /**
      * @var BraintreeAdapter
      */
-    private $adapter;
+    private BraintreeAdapter $adapter;
 
     /**
      * @var ArrayResultFactory
      */
-    private $resultFactory;
+    private ArrayResultFactory $resultFactory;
 
     /**
      * @var SubjectReader
      */
-    private $subjectReader;
+    private SubjectReader $subjectReader;
 
     /**
      * @var PaymentNonceResponseValidator
      */
-    private $responseValidator;
+    private PaymentNonceResponseValidator $responseValidator;
 
     /**
      * @param PaymentTokenManagementInterface $tokenManagement
@@ -65,14 +67,17 @@ class GetPaymentNonceCommand implements CommandInterface
     /**
      * @inheritdoc
      *
+     * @param array $commandSubject
+     * @return ArrayResult|ResultInterface|null
      * @throws LocalizedException
      */
-    public function execute(array $commandSubject)
+    public function execute(array $commandSubject): ArrayResult|ResultInterface|null
     {
         $publicHash = $this->subjectReader->readPublicHash($commandSubject);
         $customerId = $this->subjectReader->readCustomerId($commandSubject);
         $paymentToken = $this->tokenManagement->getByPublicHash($publicHash, $customerId);
-        if (!$paymentToken) {
+
+        if (!$paymentToken || !$paymentToken->getIsActive()) {
             throw new LocalizedException(__('No available payment tokens'));
         }
 
@@ -83,6 +88,11 @@ class GetPaymentNonceCommand implements CommandInterface
             throw new LocalizedException(__(implode("\n", $result->getFailsDescription())));
         }
 
-        return $this->resultFactory->create(['array' => ['paymentMethodNonce' => $data->paymentMethodNonce->nonce]]);
+        return $this->resultFactory->create([
+            'array' => [
+                'paymentMethodNonce' => $data->paymentMethodNonce->nonce,
+                'details' => $data->paymentMethodNonce->details
+            ]
+        ]);
     }
 }

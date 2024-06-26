@@ -6,12 +6,16 @@
 ?>
 <?php
 /**
- * @var $block \Magefan\Community\Block\JsScript
+ * @var $block \Magefan\Community\Block\
+ * @var $mfSecureRenderer \Magefan\Community\Api\SecureHtmlRendererInterface
  */
 ?>
-<script>
+<?php
+    $mapCodeLine = '`${key0}${keysRest.map(a => `[${a}]`).join(\'\')}=${value}`)';
+ ?>
+<?php $script = "
     window.MagefanJs = window.MagefanJs || {};
-    window.MagefanJs.objToUrlParams = function objToUrlParams(obj) {
+    window.MagefanJs.objToUrlParams = function(obj) {
         let getPairs = (obj, keys = []) =>
             Object.entries(obj).reduce((pairs, [key, value]) => {
                 if (typeof value === 'object')
@@ -23,9 +27,10 @@
 
         let x = getPairs(obj)
             .map(([[key0, ...keysRest], value]) =>
-                `${key0}${keysRest.map(a => `[${a}]`).join('')}=${value}`)
+               {$mapCodeLine}
             .join('&');
 
         return x;
-    }
-</script>
+    };
+"; ?>
+<?= /* @noEscape */ $mfSecureRenderer->renderTag('script', [], $script, false) ?>

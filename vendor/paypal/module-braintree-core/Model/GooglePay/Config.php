@@ -1,7 +1,11 @@
 <?php
-
+/**
+ * Copyright © Magento, Inc. All rights reserved.
+ * See COPYING.txt for license details.
+ */
 namespace PayPal\Braintree\Model\GooglePay;
 
+use PayPal\Braintree\Gateway\Config\Config as BraintreeConfig;
 use PayPal\Braintree\Model\Adminhtml\Source\GooglePayBtnColor;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Exception\InputException;
@@ -9,27 +13,28 @@ use Magento\Framework\Exception\NoSuchEntityException;
 
 class Config extends \Magento\Payment\Gateway\Config\Config
 {
-    const KEY_ACTIVE = 'active';
-    const KEY_CC_TYPES = 'cctypes';
-    const KEY_BTN_COLOR = 'btn_color';
+    private const KEY_ACTIVE = 'active';
+    private const KEY_CC_TYPES = 'cctypes';
+    private const KEY_BTN_COLOR = 'btn_color';
 
     /**
-     * @var \PayPal\Braintree\Gateway\Config\Config
+     * @var BraintreeConfig
      */
-    protected $braintreeConfig;
+    protected BraintreeConfig $braintreeConfig;
 
     /**
      * Config constructor.
+     *
      * @param ScopeConfigInterface $scopeConfig
-     * @param \PayPal\Braintree\Gateway\Config\Config $braintreeConfig
-     * @param null $methodCode
+     * @param BraintreeConfig $braintreeConfig
+     * @param string|null $methodCode
      * @param string $pathPattern
      */
     public function __construct(
         ScopeConfigInterface $scopeConfig,
-        \PayPal\Braintree\Gateway\Config\Config $braintreeConfig,
-        $methodCode = null,
-        $pathPattern = \Magento\Payment\Gateway\Config\Config::DEFAULT_PATH_PATTERN
+        BraintreeConfig $braintreeConfig,
+        string $methodCode = null,
+        string $pathPattern = self::DEFAULT_PATH_PATTERN
     ) {
         parent::__construct($scopeConfig, $methodCode, $pathPattern);
         $this->braintreeConfig = $braintreeConfig;

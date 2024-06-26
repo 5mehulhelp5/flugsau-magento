@@ -193,7 +193,7 @@ class Connection implements ConnectionInterface
      * @param  string    $method
      * @param  string    $uri
      * @param  null|array   $params
-     * @param  null      $body
+     * @param  null|mixed   $body
      * @param  array     $options
      * @param  Transport $transport
      * @return mixed
@@ -367,7 +367,7 @@ class Connection implements ConnectionInterface
             $uri = $this->path . $uri;
         }
 
-        return $uri ?? '';
+        return $uri;
     }
 
     public function getHeaders(): array
@@ -427,11 +427,11 @@ class Connection implements ConnectionInterface
      *
      * @param array      $request
      * @param array      $response
-     * @param \Exception $exception
+     * @param \Throwable $exception
      *
      * @return void
      */
-    public function logRequestFail(array $request, array $response, \Exception $exception): void
+    public function logRequestFail(array $request, array $response, \Throwable $exception): void
     {
         $port = $request['client']['curl'][CURLOPT_PORT] ?? $response['transfer_stats']['primary_port'] ?? '';
         $uri = $this->addPortInUrl($response['effective_url'], (int) $port);
@@ -631,17 +631,20 @@ class Connection implements ConnectionInterface
         return $curlCommand;
     }
 
-    private function process4xxError(array $request, array $response, array $ignore): ?OpenSearchException
+    /**
+     * @throws OpenSearchException
+     */
+    private function process4xxError(array $request, array $response, array $ignore): void
     {
         $statusCode = $response['status'];
 
         /**
- * @var \Exception $exception
-*/
+         * @var \Exception $exception
+        */
         $exception = $this->tryDeserialize400Error($response);
 
         if (array_search($response['status'], $ignore) !== false) {
-            return null;
+            return;
         }
 
         $responseBody = $this->convertBodyToString($response['body'], $statusCode, $exception);
@@ -666,14 +669,17 @@ class Connection implements ConnectionInterface
         throw $exception;
     }
 
-    private function process5xxError(array $request, array $response, array $ignore): ?OpenSearchException
+    /**
+     * @throws OpenSearchException
+     */
+    private function process5xxError(array $request, array $response, array $ignore): void
     {
         $statusCode = (int) $response['status'];
         $responseBody = $response['body'];
 
         /**
- * @var \Exception $exception
-*/
+         * @var \Exception $exception
+        */
         $exception = $this->tryDeserialize500Error($response);
 
         $exceptionText = "[$statusCode Server Exception] ".$exception->getMessage();
@@ -681,7 +687,7 @@ class Connection implements ConnectionInterface
         $this->log->error($exception->getTraceAsString());
 
         if (array_search($statusCode, $ignore) !== false) {
-            return null;
+            return;
         }
 
         if ($statusCode === 500 && strpos($responseBody, "RoutingMissingException") !== false) {
@@ -742,14 +748,9 @@ class Connection implements ConnectionInterface
             // 2.0 structured exceptions
             if (is_array($error['error']) && array_key_exists('reason', $error['error']) === true) {
                 // Try to use root cause first (only grabs the first root cause)
-                $root = $error['error']['root_cause'];
-                if (isset($root) && isset($root[0])) {
-                    $cause = $root[0]['reason'];
-                    $type = $root[0]['type'];
-                } else {
-                    $cause = $error['error']['reason'];
-                    $type = $error['error']['type'];
-                }
+                $info = $error['error']['root_cause'][0] ?? $error['error'];
+                $cause = $info['reason'];
+                $type = $info['type'];
                 // added json_encode to convert into a string
                 $original = new $errorClass(json_encode($response['body']), $response['status']);
 

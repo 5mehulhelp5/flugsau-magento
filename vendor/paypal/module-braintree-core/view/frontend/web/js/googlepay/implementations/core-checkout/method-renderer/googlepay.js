@@ -2,29 +2,52 @@
  * Braintree Google Pay payment method integration.
  **/
 define([
+    'underscore',
     'Magento_Checkout/js/view/payment/default',
     'Magento_Checkout/js/model/quote',
-    'PayPal_Braintree/js/googlepay/button'
+    'Magento_Vault/js/view/payment/vault-enabler',
+    'PayPal_Braintree/js/googlepay/button',
+    'PayPal_Braintree/js/googlepay/model/parsed-response',
+    'PayPal_Braintree/js/view/payment/validator-handler'
 ], function (
+    _,
     Component,
     quote,
-    button
+    VaultEnabler,
+    GooglePayButton,
+    parsedResponseModel,
+    validatorManager
 ) {
     'use strict';
 
     return Component.extend({
         defaults: {
             template: 'PayPal_Braintree/googlepay/core-checkout',
+            validatorManager: validatorManager,
             paymentMethodNonce: null,
+            creditCardBin: null,
             deviceData: null,
-            grandTotalAmount: 0
+            grandTotalAmount: 0,
+            vaultEnabler: null,
+            additionalData: {}
         },
 
         /**
-         * Inject the google pay button into the target element
+         * @returns {exports.initialize}
+         */
+        initialize: function () {
+            this._super();
+            this.vaultEnabler = new VaultEnabler();
+            this.vaultEnabler.setPaymentCode(this.getVaultCode());
+
+            return this;
+        },
+
+        /**
+         * Inject the Google Pay button into the target element
          */
         getGooglePayBtn: function (id) {
-            button.init(
+            GooglePayButton.init(
                 document.getElementById(id),
                 this
             );
@@ -35,6 +58,11 @@ define([
          */
         initObservable: function () {
             this._super();
+            this.vaultEnabler = new VaultEnabler();
+            this.vaultEnabler.setPaymentCode(this.getVaultCode());
+
+            this.validatorManager.initialize();
+
             this.grandTotalAmount = parseFloat(quote.totals()['base_grand_total']).toFixed(2);
             this.currencyCode = quote.totals()['base_currency_code'];
 
@@ -48,19 +76,28 @@ define([
         },
 
         /**
-         * Google pay place order method
+         * Google Pay place order method
          */
-        startPlaceOrder: function (nonce, paymentData, device_data) {
-            this.setPaymentMethodNonce(nonce);
-            this.setDeviceData(device_data);
-            this.placeOrder();
-        },
+        startPlaceOrder: function (device_data) {
+            let self = this;
 
-        /**
-         * Save nonce
-         */
-        setPaymentMethodNonce: function (nonce) {
-            this.paymentMethodNonce = nonce;
+            /* Set the nonce & bin and trigger 3DS if card is not network tokenized */
+            self.paymentMethodNonce = parsedResponseModel.getNonce();
+            self.creditCardBin = parsedResponseModel.getBin();
+
+            if (parsedResponseModel.getIsNetworkTokenized() === false) {
+                // place order on success validation
+                self.validatorManager.validate(self, function () {
+                    self.setDeviceData(device_data);
+                    return self.placeOrder('parent');
+                }, function () {
+                    self.paymentMethodNonce = null;
+                    self.creditCardBin = null;
+                });
+            } else {
+                self.setDeviceData(device_data);
+                self.placeOrder();
+            }
         },
 
         /**
@@ -82,31 +119,35 @@ define([
          * Payment request info
          */
         getPaymentRequest: function () {
-           var result = {
-               transactionInfo: {
-                   totalPriceStatus: 'FINAL',
-                   totalPrice: this.grandTotalAmount,
-                   currencyCode: this.currencyCode
-               },
-               allowedPaymentMethods: [
-                   {
-                       "type": "CARD",
-                       "parameters": {
-                           "allowedCardNetworks": this.getCardTypes(),
-                           "billingAddressRequired": false,
-                       },
+            let result = {
+                transactionInfo: {
+                    totalPriceStatus: 'FINAL',
+                    totalPrice: this.grandTotalAmount,
+                    currencyCode: this.currencyCode
+                },
+                allowedPaymentMethods: [
+                    {
+                        'type': 'CARD',
+                        'parameters': {
+                            'allowedCardNetworks': this.getCardTypes(),
+                            'billingAddressRequired': true,
+                            'billingAddressParameters': {
+                                format: 'FULL',
+                                phoneNumberRequired: true
+                            }
+                        }
 
-                   }
-               ],
-               shippingAddressRequired: false,
-               emailRequired: false,
+                    }
+                ],
+                shippingAddressRequired: false,
+                emailRequired: false
             };
 
-            if (this.getEnvironment() !== "TEST") {
+            if (this.getEnvironment() !== 'TEST') {
                 result.merchantInfo = { merchantId: this.getMerchantId() };
             }
 
-           return result;
+            return result;
         },
 
         /**
@@ -142,20 +183,42 @@ define([
          * @returns {Object}
          */
         getData: function () {
-            return {
+            let data = {
                 'method': this.getCode(),
                 'additional_data': {
                     'payment_method_nonce': this.paymentMethodNonce,
-                    'device_data': this.deviceData
+                    'device_data': this.deviceData,
+                    'is_network_tokenized': parsedResponseModel.getIsNetworkTokenized()
                 }
             };
+
+            if (parsedResponseModel.getIsNetworkTokenized() === false) {
+                data['additional_data'] = _.extend(data['additional_data'], this.additionalData);
+                this.vaultEnabler.visitAdditionalData(data);
+            }
+
+            return data;
         },
 
         /**
-         * Return image url for the google pay mark
+         * Return image url for the Google Pay mark
          */
         getPaymentMarkSrc: function () {
             return window.checkoutConfig.payment[this.getCode()].paymentMarkSrc;
+        },
+
+        /**
+         * @returns {Boolean}
+         */
+        isVaultEnabled: function () {
+            return this.vaultEnabler.isVaultEnabled();
+        },
+
+        /**
+         * @returns {String}
+         */
+        getVaultCode: function () {
+            return window.checkoutConfig.payment[this.getCode()].vaultCode;
         }
     });
 });
