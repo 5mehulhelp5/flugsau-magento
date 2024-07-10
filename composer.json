@@ -18,7 +18,8 @@
         "mageplaza/module-core": "1.4.3",
         "boldcommerce/magento2-ordercomments": "^1.6",
         "magento/composer-root-update-plugin": "^2.0.4",
-        "magento/zendframework1": "^1.15"
+        "magento/zendframework1": "^1.15",
+        "magento/module-elasticsearch-8": "^100.4"
     },
     "require-dev": {
         "allure-framework/allure-phpunit": "^2",
@@ -85,7 +86,8 @@
             "magento/magento-composer-installer": true,
             "magento/inventory-composer-installer": true,
             "magento/composer-dependency-version-audit-plugin": true,
-            "magento/composer-root-update-plugin": true
+            "magento/composer-root-update-plugin": true,
+            "php-http/discovery": true
         }
     }
 }
