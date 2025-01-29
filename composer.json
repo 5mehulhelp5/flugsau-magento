@@ -15,11 +15,12 @@
         "staempfli/magento2-language-de-ch": "dev-magento-2.4-compatibility",
         "lillik/magento2-price-decimal": "dev-master",
         "mageplaza/module-banner-slider": "2.0.3",
-        "mageplaza/module-core": "1.4.3",
+        "mageplaza/module-core": "^1.5",
         "boldcommerce/magento2-ordercomments": "^1.6",
         "magento/composer-root-update-plugin": "^2.0.4",
         "magento/zendframework1": "^1.15",
-        "magento/module-elasticsearch-8": "^100.4"
+        "magento/module-elasticsearch-8": "^100.4",
+        "mageplaza/module-ajax-layered-navigation": "^4.1"
     },
     "require-dev": {
         "allure-framework/allure-phpunit": "^2",
