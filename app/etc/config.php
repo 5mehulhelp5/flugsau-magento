@@ -1604,7 +1604,7 @@ Disallow: /*SID=',
                     'verify_peer' => '1',
                 ],
                 'twintcw_twint' => [
-                    'active' => '1',
+                    'active' => '0',
                     'model' => 'Customweb\\TwintCw\\Model\\Payment\\Method\\Twint',
                     'payment_action' => 'initialize',
                     'group' => 'twintcw',
