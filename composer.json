@@ -8,36 +8,37 @@
         "AFL-3.0"
     ],
     "require": {
-        "magento/product-community-edition": "2.4.3-p1",
+        "magento/product-community-edition": "2.4.7-p1",
         "magento/composer-dependency-version-audit-plugin": "~0.1",
         "magefan/module-blog": "^2.10",
         "mageplaza/magento-2-german-language-pack": "dev-master",
         "staempfli/magento2-language-de-ch": "dev-magento-2.4-compatibility",
-        "lillik/magento2-price-decimal": "^1.0",
+        "lillik/magento2-price-decimal": "dev-master",
         "mageplaza/module-banner-slider": "2.0.3",
-        "mageplaza/module-core": "1.4.3",
+        "mageplaza/module-core": "^1.5",
         "boldcommerce/magento2-ordercomments": "^1.6",
-        "magento/composer-root-update-plugin": "~2.0"
+        "magento/composer-root-update-plugin": "^2.0.4",
+        "magento/zendframework1": "^1.15",
+        "magento/module-elasticsearch-8": "^100.4",
+        "mageplaza/module-ajax-layered-navigation": "^4.1"
     },
     "require-dev": {
-        "allure-framework/allure-phpunit": "~1.4",
-        "dealerdirect/phpcodesniffer-composer-installer": "^0.7.0",
-        "friendsofphp/php-cs-fixer": "~2.18.1",
-        "lusitanian/oauth": "~0.8.10",
-        "magento/magento2-functional-testing-framework": "^3.0",
-        "pdepend/pdepend": "~2.7.1",
-        "phpmd/phpmd": "^2.8.0",
-        "phpstan/phpstan": "^0.12.77",
-        "phpunit/phpunit": "^9",
-        "sebastian/phpcpd": "^6.0.3",
-        "squizlabs/php_codesniffer": "~3.5.4",
-        "symfony/finder": "^5.2"
+        "allure-framework/allure-phpunit": "^2",
+        "dealerdirect/phpcodesniffer-composer-installer": "^0.7 || ^1.0",
+        "dg/bypass-finals": "^1.4",
+        "friendsofphp/php-cs-fixer": "^3.22",
+        "lusitanian/oauth": "^0.8",
+        "magento/magento2-functional-testing-framework": "^4.7",
+        "pdepend/pdepend": "^2.10",
+        "phpmd/phpmd": "^2.12",
+        "phpstan/phpstan": "^1.9",
+        "phpunit/phpunit": "^9.5",
+        "sebastian/phpcpd": "^6.0",
+        "symfony/finder": "^6.4"
     },
     "autoload": {
         "psr-4": {
-            "Magento\\Framework\\": "lib/internal/Magento/Framework/",
-            "Magento\\Setup\\": "setup/src/Magento/Setup/",
-            "Magento\\": "app/code/Magento/"
+            "Magento\\Setup\\": "setup/src/Magento/Setup/"
         },
         "psr-0": {
             "": [
@@ -67,7 +68,9 @@
         {
             "type": "composer",
             "url": "https://repo.magento.com/",
-            "exclude": ["magefan/module-blog"]
+            "exclude": [
+                "magefan/module-blog"
+            ]
         },
         {
             "type": "vcs",
@@ -84,7 +87,8 @@
             "magento/magento-composer-installer": true,
             "magento/inventory-composer-installer": true,
             "magento/composer-dependency-version-audit-plugin": true,
-            "magento/composer-root-update-plugin": true
+            "magento/composer-root-update-plugin": true,
+            "php-http/discovery": true
         }
     }
 }
