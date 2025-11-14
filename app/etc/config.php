@@ -4762,7 +4762,7 @@ Raiffeisen Region Stans
 BC-Nr.: 81223
 
 SWIFT: RAIFCH22
-IBAN: CH72 8122 3000 0072 2095 1
+IBAN: CH06 8080 8006 0913 8310 4
 
 for payments from Germany:
 UID Nr: CHE-116.135.646',
@@ -4919,7 +4919,7 @@ Raiffeisen Region Stans
 BC-Nr.: 81223
 
 SWIFT: RAIFCH22
-IBAN: CH72 8122 3000 0072 2095 1
+IBAN: CH06 8080 8006 0913 8310 4
 
 für Lieferungen aus Deutschland:
 UID Nr: CHE-116.135.646',
